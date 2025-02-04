@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="fit.iuh.edu.com.CourseServiceApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-02-04T00:48:26" hostname="DESKTOP-11SJ823" time="0.986">
+  <properties/>
+  <testcase name="contextLoads()" classname="fit.iuh.edu.com.CourseServiceApplicationTests" time="0.986"/>
+  <system-out><![CDATA[07:48:22.419 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [fit.iuh.edu.com.CourseServiceApplicationTests]: CourseServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+07:48:22.599 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration fit.iuh.edu.com.CourseServiceApplication for test class fit.iuh.edu.com.CourseServiceApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2025-02-04T07:48:23.177+07:00  INFO 1972 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Starting CourseServiceApplicationTests using Java 17.0.12 with PID 1972 (started by AD in D:\Project\WWW\microservices\Learning-Management-System\course_service)
+2025-02-04T07:48:23.178+07:00  INFO 1972 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : The following 1 profile is active: "dev"
+2025-02-04T07:48:25.804+07:00 DEBUG 1972 --- [course_service] [    Test worker] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2025-02-04T07:48:26.301+07:00 DEBUG 1972 --- [course_service] [    Test worker] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CsrfFilter, LogoutFilter, BearerTokenAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2025-02-04T07:48:26.800+07:00  INFO 1972 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Started CourseServiceApplicationTests in 4.004 seconds (process running for 5.565)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
