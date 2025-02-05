@@ -4,8 +4,12 @@ import fit.iuh.edu.com.services.BL.BucketServiceBL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.identity.spi.AwsCredentialsIdentity;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
@@ -25,18 +29,25 @@ import static com.google.common.io.Files.getFileExtension;
 public class BucketServiceImpl implements BucketServiceBL {
     @Value("${aws.region}")
     private String region;
+    @Value("${aws.accessKeyId}")
+    private String awsAccessKeyId;
+
+    @Value("${aws.secretAccessKey}")
+    private String awsSecretAccessKey;
+
     @Value("${aws.s3.folder}")
     private String imageFolder;
-    S3AsyncClient s3AsyncClient() {
+    public S3AsyncClient s3AsyncClient() {
         return S3AsyncClient
                 .builder()
-                .region(Region.of(region))
+                .region(Region.of(region))  // Đặt khu vực AWS (region) của bạn
                 .credentialsProvider(
-                        ProfileCredentialsProvider.create("LamDEV-Profile")
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create(awsAccessKeyId, awsSecretAccessKey) // Cung cấp Access Key và Secret Key
+                        )
                 )
                 .build();
     }
-
     @Override
     public List<Bucket> getAllBuckets() throws ExecutionException, InterruptedException {
         return s3AsyncClient().listBuckets().get().buckets();
