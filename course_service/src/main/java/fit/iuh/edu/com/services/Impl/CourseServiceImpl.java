@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.enhanced.dynamodb.internal.AttributeValues;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
@@ -24,10 +26,24 @@ import java.util.*;
 public class CourseServiceImpl implements CourseServiceBL {
     @Value("${aws.region}")
     private String region;
-    DynamoDbClient dynamoDBClient(){
+    @Value("${aws.accessKeyId}")
+    private String awsAccessKeyId;
+
+    @Value("${aws.secretAccessKey}")
+    private String awsSecretAccessKey;
+
+//    DynamoDbClient dynamoDBClient(){
+//        return DynamoDbClient.builder()
+//                .region(Region.of(region))
+//                .credentialsProvider(ProfileCredentialsProvider.create("LamDEV-Profile"))
+//                .build();
+//    }
+//    @Bean
+    public DynamoDbClient dynamoDBClient() {
         return DynamoDbClient.builder()
                 .region(Region.of(region))
-                .credentialsProvider(ProfileCredentialsProvider.create("LamDEV-Profile"))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(awsAccessKeyId, awsSecretAccessKey)))
                 .build();
     }
 
