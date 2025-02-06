@@ -30,6 +30,7 @@ dependencies {
     implementation("software.amazon.awssdk:ssooidc")
     implementation("software.amazon.awssdk:dynamodb")
     implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:cognitoidentityprovider:2.20.86'
 
     // This dependency is used by the application.
     implementation("com.google.guava:guava:33.3.0-jre")

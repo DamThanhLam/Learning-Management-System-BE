@@ -5,14 +5,8 @@ import fit.iuh.edu.com.enums.CourseStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,19 +21,17 @@ public class Course {
     private String description;
     private double price;
     private String category;
-    @CreatedDate
-    private LocalDateTime createTime;
-    @LastModifiedDate
-    private LocalDateTime updateTime;
+
+    private LocalDateTime createTime = LocalDateTime.now();
+    private LocalDateTime updateTime = LocalDateTime.now();
+
     private LocalDateTime openTime;
     private LocalDateTime closeTime;
     private LocalDateTime startTime;
     private LocalDateTime completeTime;
     private CourseStatus status;
     private String urlAvt;
-    @CreatedBy
     private String createdBy;
-    @LastModifiedBy
     private String updatedBy;
     private String teacherId;
     private String teacherName;
