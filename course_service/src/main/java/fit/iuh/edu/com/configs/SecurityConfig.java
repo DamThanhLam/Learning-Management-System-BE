@@ -20,7 +20,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        CognitoLogoutHandler cognitoLogoutHandler = new CognitoLogoutHandler();
 
         http.csrf(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
