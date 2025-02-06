@@ -10,6 +10,8 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUse
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Formattable;
 import java.util.List;
 
 @Service
@@ -32,11 +34,11 @@ public class CognitoService {
             if ("email".equals(attribute.name())) {
                 user.setEmail(attribute.value());
             }
-            if ("user".equals(attribute.name())) {
+            if ("name".equals(attribute.name())) {
                 user.setUserName(attribute.value());
             }
             if ("birthdate".equals(attribute.name())) {
-                user.setBirthday(LocalDate.parse(attribute.value()));
+                user.setBirthday( LocalDate.parse(attribute.value(), DateTimeFormatter.ofPattern("yyyy-dd-MM")));
             }
             if ("gender".equals(attribute.name())) {
                 user.setGender(attribute.value());
