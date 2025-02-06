@@ -11,25 +11,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(authorizeRequests ->
-                authorizeRequests.anyRequest().authenticated())
-                .oauth2ResourceServer(
-                        resourceServer ->
-                                resourceServer.jwt(jwt ->
-                                        jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
-                                )
-                );
-        return http.build();
-    }
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        JwtGrantedAuthoritiesConverter  jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("cognito:groups");
 
-        converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
-        return converter;
-    }
+
 }
