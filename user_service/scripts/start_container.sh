@@ -2,6 +2,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
+export PATH=$PATH:/home/ubuntu/.sdkman/candidates/gradle/current/bin
 gradle build -x test
 
 docker build -t image_lms_user_service:latest .
