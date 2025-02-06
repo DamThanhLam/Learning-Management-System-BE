@@ -7,5 +7,5 @@ hooks:
       runas: root
   AfterInstall:
     - location: user_service/scripts/start_container.sh
-      timeout: 300
+      timeout: 700
       runas: root
