@@ -1,25 +1,12 @@
 HELP.md
 **/.gradle
 **/build/
-!**/build/libs/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+**/build/libs/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-**/bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+
 
 ### IntelliJ IDEA ###
-.idea
+**/.idea
 *.iws
 *.iml
 *.ipr
@@ -27,15 +14,8 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
+**/build/*
+!**/build/libs/
 
 #**/src/main/resources/application.properties
 
