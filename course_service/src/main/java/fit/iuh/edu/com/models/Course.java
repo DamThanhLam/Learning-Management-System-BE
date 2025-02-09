@@ -31,8 +31,8 @@ public class Course {
     private LocalDateTime completeTime;
     private CourseStatus status;
     private String urlAvt;
-    private String createdBy;
-    private String updatedBy;
+//    private String createdBy;
+//    private String updatedBy;
     private String teacherId;
     private String teacherName;
     private int numberMinimum;
