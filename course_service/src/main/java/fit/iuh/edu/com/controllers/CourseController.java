@@ -64,6 +64,15 @@ public class CourseController {
     public CourseController(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
     }
+    @GetMapping(path = "search-text-own-or-studentId-by-course-name")
+    public ResponseEntity<?> searchTextOwnByCourseName(@RequestParam("courseName") String courseName, @RequestParam(value = "lastEvaluatedKey", defaultValue = "null")Map<String, AttributeValue> lastEvaluatedKey, @RequestParam(value = "page-size", defaultValue = "10") int pageSize) {
+        Map<String, Object> response = new HashMap<>();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(user.getUsername(),courseName, lastEvaluatedKey, pageSize);
+        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
+        response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
+        return ResponseEntity.ok(response);
+    }
 
     /*
     add:
