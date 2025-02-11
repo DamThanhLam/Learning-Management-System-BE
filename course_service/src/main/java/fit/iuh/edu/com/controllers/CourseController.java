@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -88,6 +90,15 @@ public class CourseController {
         response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
         return ResponseEntity.ok(response);
     }
+    @GetMapping(path = "search-text-own-or-studentId-by-course-name")
+    public ResponseEntity<?> searchTextOwnByCourseName(@RequestParam("courseName") String courseName, @RequestParam(value = "lastEvaluatedKey", defaultValue = "null")Map<String, AttributeValue> lastEvaluatedKey, @RequestParam(value = "page-size", defaultValue = "10") int pageSize) {
+        Map<String, Object> response = new HashMap<>();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(user.getUsername(),courseName, lastEvaluatedKey, pageSize);
+        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
+        response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
+        return ResponseEntity.ok(response);
+    }
     public List<Course> mappingCoursesFromScanResponse(ScanResponse response){
         List<Course> courses = new ArrayList<>();
         for (Map<String, AttributeValue> item: response.items()){
@@ -155,7 +166,7 @@ public class CourseController {
                 courseRequestAdd.completeTime,
                 CourseStatus.SEND,
                 urlAvt.toString(),
-                courseRequestAdd.teacherId,
+                "",
                 "",
                 courseRequestAdd.numberMinimum,
                 courseRequestAdd.numberMaximum,
@@ -183,8 +194,6 @@ private record CourseRequestAdd(
         @NotNull(message = "complete time must not be null")
         @Future(message = "complete time mus be a future date")
         LocalDateTime completeTime,
-        @NotNull(message = "teacher ID must not be null")
-        String teacherId,
         @Min(value = 1, message = "number minimum must be greater than 0")
         int numberMinimum,
         @Max(value = 100, message = "number maximum must be greater than 0")

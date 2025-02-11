@@ -95,5 +95,26 @@ public class CourseServiceImpl implements CourseServiceBL {
         return response;
     }
 
+    @Override
+    public ScanResponse findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
+        DynamoDbClient dbClient = dynamoDBClient();
+
+        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
+        expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
+        expressionAttributeValues.put(":userId", AttributeValues.stringValue(username));
+
+        ScanRequest request = ScanRequest
+                .builder()
+                .tableName("Course")
+                .filterExpression("contains(courseName, :courseName) AND teacherId = :userId OR contains(studentIds,:userId)")
+                .expressionAttributeValues(expressionAttributeValues)
+                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent")
+                .limit(pageSize)
+                .exclusiveStartKey(lastEvaluatedKey)
+                .build();
+        ScanResponse response = dbClient.scan(request);
+        return response;
+    }
+
 
 }

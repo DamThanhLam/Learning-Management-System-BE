@@ -14,6 +14,8 @@ public interface CourseServiceBL {
     Course update(Course course);
     void delete(Course course);
     ScanResponse findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize);
+
+    ScanResponse findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize);
 //    PaginatedScanList<Course> getAllCoursesByStudentID(int studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
 //    PaginatedScanList<Course> getAllCoursesByTeacherID(int teacherID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
 }
