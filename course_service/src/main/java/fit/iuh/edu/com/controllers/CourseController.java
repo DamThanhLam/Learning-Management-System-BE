@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -71,62 +72,60 @@ public class CourseController {
         return ResponseEntity.ok(response);
     }
 
-    /*
-    add:
-    - check id teacher and get teacher name(wait finish service teacher)
-    - check all param with type date
-    -
-     */
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping(path = "/add-course")
     public ResponseEntity<?> addCourse(@Valid CourseRequestAdd courseRequestAdd, BindingResult bindingResult) throws IOException {
         Map<String, Object> response = new HashMap<>();
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String teacherId = user.getUsername();
         if(bindingResult.hasErrors()) {
             response.put("errors", Arrays.asList(bindingResult.getAllErrors()));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
         if(!ALLOWED_FILE_TYPES.contains(courseRequestAdd.avt.getContentType())) {
             response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_FILE_TYPES));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
         if(!ALLOWED_EXTENSIONS.contains(getFileExtension(courseRequestAdd.avt.getOriginalFilename()))) {
             response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_EXTENSIONS));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
 
         if(courseRequestAdd.avt.getSize() > MAX_SIZE) {
             response.put("errors", Arrays.asList("avt size must be less than " + MAX_SIZE));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
 
         if(courseRequestAdd.openTime.isAfter(courseRequestAdd.closeTime)){
             response.put("errors", Arrays.asList("open time must be less than end time"));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
         if(courseRequestAdd.startTime.isAfter(courseRequestAdd.completeTime)){
             response.put("errors", Arrays.asList("start time must be less than end time"));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
         if(courseRequestAdd.closeTime.isAfter(courseRequestAdd.startTime)){
             response.put("errors", Arrays.asList("close time must be less than start time"));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
 
-        fit.iuh.edu.com.models.User teacher = getUserById(teacherId);
+        fit.iuh.edu.com.models.User teacher = getUserById(courseRequestAdd.teacherId);
         if (teacher == null){
             response.put("errors", Arrays.asList("teacher not found. Our fault not yours, please contract us to check."));
-            response.put("status", HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
         }
 
-        if(response.get("status") != null && response.get("status").equals(HttpStatus.BAD_REQUEST)){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
 
         URL urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.avt,"images");
 
 
-        Course course = covertCourseRequestAddToCourse(courseRequestAdd, urlAvt,teacherId, teacher.getUserName());
+        Course course = covertCourseRequestAddToCourse(courseRequestAdd, urlAvt,teacher.getId(), teacher.getUserName());
 
         Course courseResult = courseServiceImpl.create(course);
 
@@ -289,7 +288,9 @@ public class CourseController {
             @NotNull(message = "price must not be null")
             @Min(value = 0, message = "price must be greater than 0")
             @Max(value = 100000000, message = "price must be less than 100.000.000")
-            double price
+            double price,
+            @NotNull(message = "teacher id must not be null")
+            String teacherId
     ){};
     private record CourseRequestUpdate(
             @NotNull(message = "course id must not be null")
