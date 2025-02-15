@@ -29,6 +29,7 @@ dependencies {
     implementation("software.amazon.awssdk:sso")
     implementation("software.amazon.awssdk:ssooidc")
     implementation("software.amazon.awssdk:dynamodb")
+//    implementation("software.amazon.awssdk:cognito")
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:cognitoidentityprovider:2.20.86'
 

@@ -10,10 +10,7 @@ import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import org.checkerframework.checker.units.qual.A;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -250,55 +247,69 @@ public class CourseController {
                 0);
         return course;
     }
-private record AttributeSearchCourse(
-        String courseName,
-        int pageSize,
-        String lastEvaluateKey
-){
-    public AttributeSearchCourse {
-        if (pageSize <= 0) {
-            pageSize = 10; // Giá trị mặc định
+
+    private record AttributeSearchCourse(
+            String courseName,
+            int pageSize,
+            String lastEvaluateKey
+    ){
+        public AttributeSearchCourse {
+            if (pageSize <= 0) {
+                pageSize = 10; // Giá trị mặc định
+            }
         }
     }
-}
-private record CourseRequestAdd(
-        @NotNull(message = "course name must not be null")
-        @Length(min = 3, max = 50,message = "course name has length minimum 3 and maximum 50")
-        String courseName,
-        @NotNull(message = "description must not be null")
-        @Length(min = 10, max = 150, message = "description has length minimum 10 and maximum 150")
-        String description,
-        @NotNull(message = "category must not be null")
-        String category,
-        @NotNull(message = "open time must not be null")
-        @Future(message = "open time must be a future date")
-        LocalDateTime openTime,
-        @NotNull(message = "close time must not be null")
-        @Future(message = "close time mus be a future date")
-        LocalDateTime closeTime,
-        @NotNull(message = "start time must not be null")
-        @Future(message = "start time mus be a future date")
-        LocalDateTime startTime,
-        @NotNull(message = "complete time must not be null")
-        @Future(message = "complete time mus be a future date")
-        LocalDateTime completeTime,
-        @Min(value = 1, message = "number minimum must be greater than 0")
-        int numberMinimum,
-        @Max(value = 100, message = "number maximum must be greater than 0")
-        int numberMaximum,
-        @NotNull(message = "file avt must not be null")
-        MultipartFile avt,
-        @NotNull(message = "price must not be null")
-        @Min(value = 0, message = "price must be greater than 0")
-        @Max(value = 100000000, message = "price must be less than 100.000.000")
-        double price
-        ){};
-    public String getFileExtension(String filename) {
-        int dotIndex = filename.lastIndexOf(".");
-        if (dotIndex > 0 && dotIndex < filename.length() - 1) {
-            return filename.substring(dotIndex + 1).toLowerCase();
+    private record CourseRequestAdd(
+            @NotNull(message = "course name must not be null")
+            @Length(min = 3, max = 50,message = "course name has length minimum 3 and maximum 50")
+            String courseName,
+            @NotNull(message = "description must not be null")
+            @Length(min = 10, max = 150, message = "description has length minimum 10 and maximum 150")
+            String description,
+            @NotNull(message = "category must not be null")
+            String category,
+            @NotNull(message = "open time must not be null")
+            @Future(message = "open time must be a future date")
+            LocalDateTime openTime,
+            @NotNull(message = "close time must not be null")
+            @Future(message = "close time mus be a future date")
+            LocalDateTime closeTime,
+            @NotNull(message = "start time must not be null")
+            @Future(message = "start time mus be a future date")
+            LocalDateTime startTime,
+            @NotNull(message = "complete time must not be null")
+            @Future(message = "complete time mus be a future date")
+            LocalDateTime completeTime,
+            @Min(value = 1, message = "number minimum must be greater than 0")
+            int numberMinimum,
+            @Max(value = 100, message = "number maximum must be greater than 0")
+            int numberMaximum,
+            @NotNull(message = "file avt must not be null")
+            MultipartFile avt,
+            @NotNull(message = "price must not be null")
+            @Min(value = 0, message = "price must be greater than 0")
+            @Max(value = 100000000, message = "price must be less than 100.000.000")
+            double price
+    ){};
+    private record CourseRequestUpdate(
+            @NotNull(message = "course id must not be null")
+            String id,
+            String category,
+            @Null
+            @Min(value = 1, message = "number minimum must be greater than 0")
+            int numberMinimum,
+            @Null
+            @Max(value = 100, message = "number maximum must be greater than 0")
+            int numberMaximum,
+            @Null
+            String storeStatus
+    ){};
+        public String getFileExtension(String filename) {
+            int dotIndex = filename.lastIndexOf(".");
+            if (dotIndex > 0 && dotIndex < filename.length() - 1) {
+                return filename.substring(dotIndex + 1).toLowerCase();
+            }
+            return ""; // Nếu không có đuôi mở rộng
         }
-        return ""; // Nếu không có đuôi mở rộng
-    }
 
 }
