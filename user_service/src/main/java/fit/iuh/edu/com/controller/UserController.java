@@ -1,7 +1,7 @@
 package fit.iuh.edu.com.controller;
 
 import fit.iuh.edu.com.models.User;
-import fit.iuh.edu.com.services.*;
+import fit.iuh.edu.com.services.CognitoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
