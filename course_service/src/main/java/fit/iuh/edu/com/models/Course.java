@@ -38,7 +38,7 @@ public class Course {
     private int numberMinimum;
     private int numberMaximum;
     private int numberCurrent;
-    private List<String> studentIds;
+    private List<String> studentsId;
 
     @DynamoDbPartitionKey
     public String getId() {

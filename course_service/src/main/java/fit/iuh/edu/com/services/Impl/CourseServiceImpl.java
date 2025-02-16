@@ -85,7 +85,7 @@ public class CourseServiceImpl implements CourseServiceBL {
                 .filterExpression("contains(courseName, :courseName)")
                 .exclusiveStartKey(lastEvaluatedKey)
                 .expressionAttributeValues(expressionAttributeValues)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent")
+                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds")
                 .limit(pageSize)
                 .build();
 

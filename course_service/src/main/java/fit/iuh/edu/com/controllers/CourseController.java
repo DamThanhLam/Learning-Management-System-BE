@@ -3,6 +3,7 @@ package fit.iuh.edu.com.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.JWT;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.services.BL.BucketServiceBL;
@@ -18,9 +19,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,11 +59,11 @@ public class CourseController {
 
     private final WebClient webClient;
 
-    @Value("${api.v1.baseUrl.userApi}")
-    private String baseUrl;
 
-    public CourseController(WebClient.Builder webClientBuilder) {
+    public CourseController(WebClient.Builder webClientBuilder, @Value("${api.v1.baseUrl.userApi}") String baseUrl) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+
+
     }
     @GetMapping(path = "search-text-own-or-studentId-by-course-name")
     public ResponseEntity<?> searchTextOwnByCourseName(@RequestParam("courseName") String courseName, @RequestParam(value = "lastEvaluatedKey", defaultValue = "null")Map<String, AttributeValue> lastEvaluatedKey, @RequestParam(value = "page-size", defaultValue = "10") int pageSize) {
@@ -120,7 +123,8 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         }
-        if(!teacher.getGroups().contains("TEACHER")){
+        System.out.println(teacher.getUserName());
+        if(teacher.getGroups() == null || !teacher.getGroups().contains("TEACHER")){
             response.put("errors", Arrays.asList("user found not in the teacher group"));
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
@@ -138,13 +142,18 @@ public class CourseController {
     }
 
     private fit.iuh.edu.com.models.User getUserById(String teacherId) {
-
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String jwt = ((Jwt) authentication.getPrincipal()).getTokenValue();
         return webClient.get()
-                .uri("&id="+teacherId)
+                .uri(uriBuilder -> uriBuilder.path("").queryParam("id", teacherId).build())
+                .headers(httpHeaders -> httpHeaders.setBearerAuth(jwt))
                 .retrieve()
-                .bodyToMono(fit.iuh.edu.com.models.User.class)
+                .bodyToMono(ResponseUser.class)
+                .map(ResponseUser::user)
                 .block();
+
     }
+
 
     @PostMapping(path = "search-text-by-course-name")
     public ResponseEntity<?> searchTextByCourseName(@Valid AttributeSearchCourse attributeSearchCourse, BindingResult bindingResult ) throws JsonProcessingException {
@@ -152,7 +161,6 @@ public class CourseController {
         Map<String, String> rawMap  = new HashMap<>();
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, AttributeValue> lastEvaluateKeyMap = new HashMap<>();
-        System.out.println(attributeSearchCourse.lastEvaluateKey);
 
         if (attributeSearchCourse.lastEvaluateKey != null) {
 
@@ -163,7 +171,7 @@ public class CourseController {
                             e -> AttributeValue.builder().s(e.getValue()).build() // Convert String to AttributeValue
                     ));
         }
-        ScanResponse scanResponse = courseServiceImpl.findByCourseName(attributeSearchCourse.courseName, !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
+        ScanResponse scanResponse = courseServiceImpl.findByCourseName(attributeSearchCourse.courseName != null ?attributeSearchCourse.courseName :"" , !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
 
         Map<String, Object> convertedMap = scanResponse.lastEvaluatedKey().entrySet().stream()
                 .collect(Collectors.toMap(
@@ -228,6 +236,18 @@ public class CourseController {
             if (item.containsKey("numberCurrent")) {
                 course.setNumberCurrent(Integer.parseInt(item.get("numberCurrent").n()));
             }
+            if(item.containsKey("category")){
+                course.setCategory(item.get("category").s());
+            }
+            if(item.containsKey("status")){
+                course.setStatus(CourseStatus.valueOf(item.get("status").s()));
+            }
+            if(item.containsKey("teacherId")){
+                course.setTeacherId(item.get("teacherId").s());
+            }
+            if(item.containsKey("studentsId")){
+                course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
+            }
             courses.add(course);
         }
         return courses;
@@ -241,7 +261,7 @@ public class CourseController {
                 courseRequestAdd.closeTime,
                 courseRequestAdd.startTime,
                 courseRequestAdd.completeTime,
-                CourseStatus.SEND,
+                CourseStatus.OPEN,
                 urlAvt.toString(),
                 teacherId,
                 teacherName,
@@ -251,6 +271,7 @@ public class CourseController {
         return course;
     }
 
+    private record ResponseUser(fit.iuh.edu.com.models.User user) {};
     private record AttributeSearchCourse(
             String courseName,
             int pageSize,
