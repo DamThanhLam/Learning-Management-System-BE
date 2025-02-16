@@ -21,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.BindingResult;
@@ -65,11 +64,25 @@ public class CourseController {
 
 
     }
-    @GetMapping(path = "search-text-own-or-studentId-by-course-name")
-    public ResponseEntity<?> searchTextOwnByCourseName(@RequestParam("courseName") String courseName, @RequestParam(value = "lastEvaluatedKey", defaultValue = "null")Map<String, AttributeValue> lastEvaluatedKey, @RequestParam(value = "page-size", defaultValue = "10") int pageSize) {
+    @PostMapping(path = "search-text-own-or-studentId-by-course-name")
+    public ResponseEntity<?> searchTextOwnByCourseName(@Valid AttributeSearchCourse attributeSearchCourse, BindingResult bindingResult) throws JsonProcessingException {
         Map<String, Object> response = new HashMap<>();
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(user.getUsername(),courseName, lastEvaluatedKey, pageSize);
+        Map<String, String> rawMap  = new HashMap<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, AttributeValue> lastEvaluateKeyMap = new HashMap<>();
+
+        if (attributeSearchCourse.lastEvaluateKey != null) {
+
+            rawMap  = objectMapper.readValue(attributeSearchCourse.lastEvaluateKey, new TypeReference<Map<String, String>>() {});
+            lastEvaluateKeyMap = rawMap.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> AttributeValue.builder().s(e.getValue()).build() // Convert String to AttributeValue
+                    ));
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println(((Jwt)authentication.getPrincipal()).getClaims().get("username"));
+        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(((Jwt)authentication.getPrincipal()).getClaims().get("username").toString(),attributeSearchCourse.courseName != null ? attributeSearchCourse.courseName :"", !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
         response.put("courses", mappingCoursesFromScanResponse(scanResponse));
         response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
         return ResponseEntity.ok(response);
