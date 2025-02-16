@@ -81,13 +81,17 @@ public class CourseController {
                     ));
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println(((Jwt)authentication.getPrincipal()).getClaims().get("username"));
+        System.out.println(authentication.getName());
         ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(((Jwt)authentication.getPrincipal()).getClaims().get("username").toString(),attributeSearchCourse.courseName != null ? attributeSearchCourse.courseName :"", !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
         response.put("courses", mappingCoursesFromScanResponse(scanResponse));
         response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
         return ResponseEntity.ok(response);
     }
-
+    @GetMapping(path = "get-course-detail-by-id")
+    public ResponseEntity<?> getCourseDetailById(@RequestParam("course-id") String courseId){
+        Course course = courseServiceImpl.getCourseDetailById(courseId);
+        return ResponseEntity.ok(course);
+    }
     @PreAuthorize("hasAnyRole('ADMIN')")
     @PostMapping(path = "/add-course")
     public ResponseEntity<?> addCourse(@Valid CourseRequestAdd courseRequestAdd, BindingResult bindingResult) throws IOException {

@@ -5,6 +5,7 @@ import fit.iuh.edu.com.enums.CourseStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.annotation.LastModifiedDate;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
@@ -45,11 +46,7 @@ public class Course {
         return id;
     }
     @DynamoDbSortKey
-    @DynamoDbSecondaryPartitionKey(indexNames = "courseName-closeTime-index")
-    public String getCourseName() {
-        return courseName;
-    }
-
+    public LocalDateTime getOpenTime() { return this.openTime; }
     public Course(String courseName, String description, double price, LocalDateTime openTime, LocalDateTime closeTime, LocalDateTime startTime, LocalDateTime completeTime, CourseStatus status, String urlAvt, String teacherId, String teacherName, int numberMinimum, int numberMaximum, int numberCurrent, String category) {
         this.courseName = courseName;
         this.description = description;
