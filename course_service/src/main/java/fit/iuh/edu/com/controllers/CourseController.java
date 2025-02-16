@@ -120,6 +120,10 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         }
+        if(!teacher.getGroups().contains("TEACHER")){
+            response.put("errors", Arrays.asList("user found not in the teacher group"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
 
 
         URL urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.avt,"images");
