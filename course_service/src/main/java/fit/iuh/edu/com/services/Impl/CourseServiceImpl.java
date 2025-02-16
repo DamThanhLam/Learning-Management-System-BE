@@ -84,13 +84,14 @@ public class CourseServiceImpl implements CourseServiceBL {
 
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
+        expressionAttributeValues.put(":openTime", AttributeValues.stringValue(String.valueOf(LocalDateTime.now())));
         Map<String, String> expressionAttributeNames = new HashMap<>();
         expressionAttributeNames.put("#s", "status"); // Định nghĩa alias cho "status"
 
         ScanRequest query = ScanRequest
                 .builder()
                 .tableName("Course")
-                .filterExpression("contains(courseName, :courseName)")
+                .filterExpression("contains(courseName, :courseName) and openTime >= :openTime")
                 .exclusiveStartKey(lastEvaluatedKey)
                 .expressionAttributeValues(expressionAttributeValues)
                 .expressionAttributeNames(expressionAttributeNames)
