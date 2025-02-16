@@ -50,7 +50,7 @@ public class Course {
         return courseName;
     }
 
-    public Course(String courseName, String description, double price, LocalDateTime openTime, LocalDateTime closeTime, LocalDateTime startTime, LocalDateTime completeTime, CourseStatus status, String urlAvt, String teacherId, String teacherName, int numberMinimum, int numberMaximum, int numberCurrent) {
+    public Course(String courseName, String description, double price, LocalDateTime openTime, LocalDateTime closeTime, LocalDateTime startTime, LocalDateTime completeTime, CourseStatus status, String urlAvt, String teacherId, String teacherName, int numberMinimum, int numberMaximum, int numberCurrent, String category) {
         this.courseName = courseName;
         this.description = description;
         this.price = price;
@@ -65,5 +65,6 @@ public class Course {
         this.numberMinimum = numberMinimum;
         this.numberMaximum = numberMaximum;
         this.numberCurrent = numberCurrent;
+        this.category = category;
     }
 }

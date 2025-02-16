@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="fit.iuh.edu.com.CourseServiceApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-02-16T11:19:01" hostname="DESKTOP-11SJ823" time="2.533">
+<testsuite name="fit.iuh.edu.com.CourseServiceApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-02-16T11:33:30" hostname="DESKTOP-11SJ823" time="1.465">
   <properties/>
-  <testcase name="contextLoads()" classname="fit.iuh.edu.com.CourseServiceApplicationTests" time="2.533"/>
-  <system-out><![CDATA[18:18:52.892 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [fit.iuh.edu.com.CourseServiceApplicationTests]: CourseServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-18:18:53.549 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration fit.iuh.edu.com.CourseServiceApplication for test class fit.iuh.edu.com.CourseServiceApplicationTests
+  <testcase name="contextLoads()" classname="fit.iuh.edu.com.CourseServiceApplicationTests" time="1.465"/>
+  <system-out><![CDATA[18:33:24.368 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [fit.iuh.edu.com.CourseServiceApplicationTests]: CourseServiceApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+18:33:24.579 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration fit.iuh.edu.com.CourseServiceApplication for test class fit.iuh.edu.com.CourseServiceApplicationTests
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -14,15 +14,15 @@
 
  :: Spring Boot ::                (v3.4.2)
 
-2025-02-16T18:18:54.908+07:00  INFO 15488 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Starting CourseServiceApplicationTests using Java 17.0.12 with PID 15488 (started by AD in D:\Project\WWW\microservices\Learning-Management-System\course_service)
-2025-02-16T18:18:54.910+07:00  INFO 15488 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : The following 1 profile is active: "dev"
-2025-02-16T18:18:58.558+07:00 DEBUG 15488 --- [course_service] [    Test worker] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
-2025-02-16T18:18:58.653+07:00 DEBUG 15488 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneStepMap() - From role ROLE_ADMIN one can reach role ROLE_TEACHER in one step.
-2025-02-16T18:18:58.654+07:00 DEBUG 15488 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneStepMap() - From role ROLE_TEACHER one can reach role ROLE_STUDENT in one step.
-2025-02-16T18:18:58.654+07:00 DEBUG 15488 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneOrMoreStepsMap() - From role ROLE_ADMIN one can reach [ROLE_STUDENT, ROLE_TEACHER] in one or more steps.
-2025-02-16T18:18:58.655+07:00 DEBUG 15488 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneOrMoreStepsMap() - From role ROLE_TEACHER one can reach [ROLE_STUDENT] in one or more steps.
-2025-02-16T18:18:59.492+07:00 DEBUG 15488 --- [course_service] [    Test worker] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CsrfFilter, LogoutFilter, BearerTokenAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
-2025-02-16T18:19:01.132+07:00  INFO 15488 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Started CourseServiceApplicationTests in 6.712 seconds (process running for 9.752)
+2025-02-16T18:33:25.300+07:00  INFO 15568 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Starting CourseServiceApplicationTests using Java 17.0.12 with PID 15568 (started by AD in D:\Project\WWW\microservices\Learning-Management-System\course_service)
+2025-02-16T18:33:25.302+07:00  INFO 15568 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : The following 1 profile is active: "dev"
+2025-02-16T18:33:28.641+07:00 DEBUG 15568 --- [course_service] [    Test worker] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2025-02-16T18:33:28.720+07:00 DEBUG 15568 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneStepMap() - From role ROLE_ADMIN one can reach role ROLE_TEACHER in one step.
+2025-02-16T18:33:28.720+07:00 DEBUG 15568 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneStepMap() - From role ROLE_TEACHER one can reach role ROLE_STUDENT in one step.
+2025-02-16T18:33:28.721+07:00 DEBUG 15568 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneOrMoreStepsMap() - From role ROLE_ADMIN one can reach [ROLE_STUDENT, ROLE_TEACHER] in one or more steps.
+2025-02-16T18:33:28.721+07:00 DEBUG 15568 --- [course_service] [    Test worker] o.s.s.a.h.RoleHierarchyImpl              : buildRolesReachableInOneOrMoreStepsMap() - From role ROLE_TEACHER one can reach [ROLE_STUDENT] in one or more steps.
+2025-02-16T18:33:29.505+07:00 DEBUG 15568 --- [course_service] [    Test worker] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CsrfFilter, LogoutFilter, BearerTokenAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2025-02-16T18:33:30.406+07:00  INFO 15568 --- [course_service] [    Test worker] f.i.e.com.CourseServiceApplicationTests  : Started CourseServiceApplicationTests in 5.557 seconds (process running for 7.382)
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

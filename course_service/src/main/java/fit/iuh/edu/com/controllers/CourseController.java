@@ -267,7 +267,8 @@ public class CourseController {
                 teacherName,
                 courseRequestAdd.numberMinimum,
                 courseRequestAdd.numberMaximum,
-                0);
+                0,
+                courseRequestAdd.category);
         return course;
     }
 

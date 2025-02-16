@@ -78,6 +78,8 @@ public class CourseServiceImpl implements CourseServiceBL {
 
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
+        Map<String, String> expressionAttributeNames = new HashMap<>();
+        expressionAttributeNames.put("#s", "status"); // Định nghĩa alias cho "status"
 
         ScanRequest query = ScanRequest
                 .builder()
@@ -85,7 +87,8 @@ public class CourseServiceImpl implements CourseServiceBL {
                 .filterExpression("contains(courseName, :courseName)")
                 .exclusiveStartKey(lastEvaluatedKey)
                 .expressionAttributeValues(expressionAttributeValues)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds")
+                .expressionAttributeNames(expressionAttributeNames)
+                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds, #s, teacherId")
                 .limit(pageSize)
                 .build();
 
@@ -102,13 +105,15 @@ public class CourseServiceImpl implements CourseServiceBL {
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
         expressionAttributeValues.put(":userId", AttributeValues.stringValue(username));
-
+        Map<String, String> expressionAttributeNames = new HashMap<>();
+        expressionAttributeNames.put("#s", "status");
         ScanRequest request = ScanRequest
                 .builder()
                 .tableName("Course")
                 .filterExpression("contains(courseName, :courseName) AND teacherId = :userId OR contains(studentIds,:userId)")
                 .expressionAttributeValues(expressionAttributeValues)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent")
+                .expressionAttributeNames(expressionAttributeNames)
+                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds, #s, teacherId")
                 .limit(pageSize)
                 .exclusiveStartKey(lastEvaluatedKey)
                 .build();
