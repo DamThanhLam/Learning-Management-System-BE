@@ -1,7 +1,9 @@
 package fit.iuh.edu.com.services.Impl;
 
+import fit.iuh.edu.com.controllers.CourseController;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
+import fit.iuh.edu.com.repositories.CourseRepository;
 import fit.iuh.edu.com.services.BL.CourseServiceBL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
+import java.io.IOException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -30,112 +34,109 @@ import java.util.function.Consumer;
 @Primary
 @Service
 public class CourseServiceImpl implements CourseServiceBL {
-    @Value("${aws.region}")
-    private String region;
-    @Value("${aws.accessKeyId}")
-    private String awsAccessKeyId;
 
-    @Value("${aws.secretAccessKey}")
-    private String awsSecretAccessKey;
-
-//    DynamoDbClient dynamoDBClient(){
-//        return DynamoDbClient.builder()
-//                .region(Region.of(region))
-//                .credentialsProvider(ProfileCredentialsProvider.create("LamDEV-Profile"))
-//                .build();
-//    }
-//    @Bean
-    public DynamoDbClient dynamoDBClient() {
-        return DynamoDbClient.builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(awsAccessKeyId, awsSecretAccessKey)))
-                .build();
-    }
+    @Autowired
+    private CourseRepository courseRepository;
 
     @Override
     public Course create(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        course.setId(java.util.UUID.randomUUID().toString());
-        courseTable.putItem(course);
-        System.out.println("Course added successfully: " + course.getCourseName());
-        return course;
+        return courseRepository.create(course);
     }
 
     @Override
     public Course update(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        courseTable.updateItem(course);
-        return course;
+        return courseRepository.update(course);
     }
 
     @Override
     public void delete(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        course.setStatus(CourseStatus.DELETED);
-        courseTable.updateItem(course);
-    }
-    @Override
-    public ScanResponse findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
-        DynamoDbClient dynamoDbClient = dynamoDBClient();
-
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
-        expressionAttributeValues.put(":openTime", AttributeValues.stringValue(String.valueOf(LocalDateTime.now())));
-        Map<String, String> expressionAttributeNames = new HashMap<>();
-        expressionAttributeNames.put("#s", "status"); // Định nghĩa alias cho "status"
-
-        ScanRequest query = ScanRequest
-                .builder()
-                .tableName("Course")
-                .filterExpression("contains(courseName, :courseName) and openTime >= :openTime")
-                .exclusiveStartKey(lastEvaluatedKey)
-                .expressionAttributeValues(expressionAttributeValues)
-                .expressionAttributeNames(expressionAttributeNames)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds, #s, teacherId")
-                .limit(pageSize)
-                .build();
-
-
-        ScanResponse response = dynamoDbClient.scan(query);
-
-        return response;
+        courseRepository.delete(course);
     }
 
     @Override
-    public ScanResponse findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
-        DynamoDbClient dbClient = dynamoDBClient();
+    public List<Course> findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
+        return mappingCoursesFromScanResponse(courseRepository.findByCourseName(courseName, lastEvaluatedKey, pageSize));
+    }
 
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
-        expressionAttributeValues.put(":userId", AttributeValues.stringValue(username));
-        Map<String, String> expressionAttributeNames = new HashMap<>();
-        expressionAttributeNames.put("#s", "status");
-        ScanRequest request = ScanRequest
-                .builder()
-                .tableName("Course")
-                .filterExpression("contains(courseName, :courseName) AND teacherId = :userId OR contains(studentIds,:userId)")
-                .expressionAttributeValues(expressionAttributeValues)
-                .expressionAttributeNames(expressionAttributeNames)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent, category, studentIds, #s, teacherId")
-                .limit(pageSize)
-                .exclusiveStartKey(lastEvaluatedKey)
-                .build();
-        ScanResponse response = dbClient.scan(request);
-        return response;
+    @Override
+    public List<Course> findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
+        ScanResponse scanResponse = courseRepository.findOwnOrStudentIdByCourseName(username,courseName,lastEvaluatedKey,pageSize);
+        return mappingCoursesFromScanResponse(scanResponse);
     }
 
     @PostAuthorize("returnObject.teacherId == authentication.name OR returnObject.studentsId.contains(authentication.name)")
     @Override
     public Course getCourseDetailById(String courseId) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> dynamoDbTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        Course course = dynamoDbTable.getItem(Key.builder().partitionValue(courseId).build());
-        return course;
+        return courseRepository.getCourseDetailById(courseId);
     }
 
+    public List<Course> mappingCoursesFromScanResponse(ScanResponse response){
+        List<Course> courses = new ArrayList<>();
+        for (Map<String, AttributeValue> item: response.items()){
+            Course course = new Course();
+
+            // Ánh xạ các trường từ item vào đối tượng Course
+            if (item.containsKey("id")) {
+                course.setId(item.get("id").s());  // Giả sử "id" là chuỗi
+            }
+            if (item.containsKey("courseName")) {
+                course.setCourseName(item.get("courseName").s());
+            }
+            if (item.containsKey("description")) {
+                course.setDescription(item.get("description").s());
+            }
+            if (item.containsKey("price")) {
+                course.setPrice(Double.parseDouble(item.get("price").n()));
+            }
+            if (item.containsKey("createTime")) {
+                course.setCreateTime(LocalDateTime.parse(item.get("createTime").s()));
+            }
+            if (item.containsKey("updateTime")) {
+                course.setUpdateTime(LocalDateTime.parse(item.get("updateTime").s()));
+            }
+            if (item.containsKey("openTime")) {
+                course.setOpenTime(LocalDateTime.parse(item.get("openTime").s()));
+            }
+            if (item.containsKey("closeTime")) {
+                course.setCloseTime(LocalDateTime.parse(item.get("closeTime").s()));
+            }
+            if (item.containsKey("startTime")) {
+                course.setStartTime(LocalDateTime.parse(item.get("startTime").s()));
+            }
+
+            if (item.containsKey("completeTime")) {
+                course.setCompleteTime(LocalDateTime.parse(item.get("completeTime").s()));
+            }
+            if (item.containsKey("urlAvt")) {
+                course.setUrlAvt(item.get("urlAvt").s());
+            }
+            if (item.containsKey("teacherName")) {
+                course.setTeacherName(item.get("teacherName").s());
+            }
+            if (item.containsKey("numberMinimum")) {
+                course.setNumberMinimum(Integer.parseInt(item.get("numberMinimum").n()));
+            }
+            if (item.containsKey("numberMaximum")) {
+                course.setNumberMaximum(Integer.parseInt(item.get("numberMaximum").n()));
+            }
+            if (item.containsKey("numberCurrent")) {
+                course.setNumberCurrent(Integer.parseInt(item.get("numberCurrent").n()));
+            }
+            if(item.containsKey("category")){
+                course.setCategory(item.get("category").s());
+            }
+            if(item.containsKey("status")){
+                course.setStatus(CourseStatus.valueOf(item.get("status").s()));
+            }
+            if(item.containsKey("teacherId")){
+                course.setTeacherId(item.get("teacherId").s());
+            }
+            if(item.containsKey("studentsId")){
+                course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
+            }
+            courses.add(course);
+        }
+        return courses;
+    }
 
 }

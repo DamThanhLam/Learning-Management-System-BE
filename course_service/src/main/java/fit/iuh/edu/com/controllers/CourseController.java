@@ -3,16 +3,12 @@ package fit.iuh.edu.com.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jwt.JWT;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
-import fit.iuh.edu.com.services.BL.BucketServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
-import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import org.checkerframework.checker.units.qual.A;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,26 +17,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-
-import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @RestController
@@ -81,10 +68,8 @@ public class CourseController {
                     ));
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println(authentication.getName());
-        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(((Jwt)authentication.getPrincipal()).getClaims().get("username").toString(),attributeSearchCourse.courseName != null ? attributeSearchCourse.courseName :"", !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
-        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
-        response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
+        List<Course> courses = courseServiceImpl.findOwnOrStudentIdByCourseName(((Jwt)authentication.getPrincipal()).getClaims().get("username").toString(),attributeSearchCourse.courseName != null ? attributeSearchCourse.courseName :"", !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
+        response.put("courses", courses);
         return ResponseEntity.ok(response);
     }
     @GetMapping(path = "get-course-detail-by-id")
@@ -157,6 +142,18 @@ public class CourseController {
         response.put("course", courseResult);
         return ResponseEntity.ok(response);
     }
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PostMapping(path = "/update-course")
+    public ResponseEntity<?> updateCourse(@Valid CourseRequestUpdate courseRequestUpdate, BindingResult bindingResult) throws IOException {
+        Map<String, Object> response = new HashMap<>();
+        if(bindingResult.hasErrors()) {
+            response.put("errors", Arrays.asList(bindingResult.getAllErrors()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+
+        return ResponseEntity.ok(response);
+    }
 
     private fit.iuh.edu.com.models.User getUserById(String teacherId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -188,88 +185,14 @@ public class CourseController {
                             e -> AttributeValue.builder().s(e.getValue()).build() // Convert String to AttributeValue
                     ));
         }
-        ScanResponse scanResponse = courseServiceImpl.findByCourseName(attributeSearchCourse.courseName != null ?attributeSearchCourse.courseName :"" , !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
+        List<Course> courses = courseServiceImpl.findByCourseName(attributeSearchCourse.courseName != null ?attributeSearchCourse.courseName :"" , !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
 
-        Map<String, Object> convertedMap = scanResponse.lastEvaluatedKey().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().s() // Lấy giá trị String (hoặc số, boolean nếu có)
-                ));
 
-        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
-        response.put("lastEvaluateKey", convertedMap);
+        response.put("courses", courses);
 
         return ResponseEntity.ok(response);
     }
-    public List<Course> mappingCoursesFromScanResponse(ScanResponse response){
-        List<Course> courses = new ArrayList<>();
-        for (Map<String, AttributeValue> item: response.items()){
-            Course course = new Course();
-
-            // Ánh xạ các trường từ item vào đối tượng Course
-            if (item.containsKey("id")) {
-                course.setId(item.get("id").s());  // Giả sử "id" là chuỗi
-            }
-            if (item.containsKey("courseName")) {
-                course.setCourseName(item.get("courseName").s());
-            }
-            if (item.containsKey("description")) {
-                course.setDescription(item.get("description").s());
-            }
-            if (item.containsKey("price")) {
-                course.setPrice(Double.parseDouble(item.get("price").n()));
-            }
-            if (item.containsKey("createTime")) {
-                course.setCreateTime(LocalDateTime.parse(item.get("createTime").s()));
-            }
-            if (item.containsKey("updateTime")) {
-                course.setUpdateTime(LocalDateTime.parse(item.get("updateTime").s()));
-            }
-            if (item.containsKey("openTime")) {
-                course.setOpenTime(LocalDateTime.parse(item.get("openTime").s()));
-            }
-            if (item.containsKey("closeTime")) {
-                course.setCloseTime(LocalDateTime.parse(item.get("closeTime").s()));
-            }
-            if (item.containsKey("startTime")) {
-                course.setStartTime(LocalDateTime.parse(item.get("startTime").s()));
-            }
-
-            if (item.containsKey("completeTime")) {
-                course.setCompleteTime(LocalDateTime.parse(item.get("completeTime").s()));
-            }
-            if (item.containsKey("urlAvt")) {
-                course.setUrlAvt(item.get("urlAvt").s());
-            }
-            if (item.containsKey("teacherName")) {
-                course.setTeacherName(item.get("teacherName").s());
-            }
-            if (item.containsKey("numberMinimum")) {
-                course.setNumberMinimum(Integer.parseInt(item.get("numberMinimum").n()));
-            }
-            if (item.containsKey("numberMaximum")) {
-                course.setNumberMaximum(Integer.parseInt(item.get("numberMaximum").n()));
-            }
-            if (item.containsKey("numberCurrent")) {
-                course.setNumberCurrent(Integer.parseInt(item.get("numberCurrent").n()));
-            }
-            if(item.containsKey("category")){
-                course.setCategory(item.get("category").s());
-            }
-            if(item.containsKey("status")){
-                course.setStatus(CourseStatus.valueOf(item.get("status").s()));
-            }
-            if(item.containsKey("teacherId")){
-                course.setTeacherId(item.get("teacherId").s());
-            }
-            if(item.containsKey("studentsId")){
-                course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
-            }
-            courses.add(course);
-        }
-        return courses;
-    }
-    private Course covertCourseRequestAddToCourse(CourseRequestAdd courseRequestAdd, URL urlAvt, String teacherId, String teacherName) throws IOException {
+    private Course covertCourseRequestAddToCourse(CourseController.CourseRequestAdd courseRequestAdd, URL urlAvt, String teacherId, String teacherName) throws IOException {
         Course course = new Course(
                 courseRequestAdd.courseName,
                 courseRequestAdd.description,
@@ -309,6 +232,7 @@ public class CourseController {
             @Length(min = 10, max = 150, message = "description has length minimum 10 and maximum 150")
             String description,
             @NotNull(message = "category must not be null")
+            @Length(min = 2)
             String category,
             @NotNull(message = "open time must not be null")
             @Future(message = "open time must be a future date")
@@ -338,7 +262,21 @@ public class CourseController {
     private record CourseRequestUpdate(
             @NotNull(message = "course id must not be null")
             String id,
+            @Null
+            @Length(min = 2)
             String category,
+            @Null
+            @Future(message = "open time must be a future date")
+            LocalDateTime openTime,
+            @Null
+            @Future(message = "close time mus be a future date")
+            LocalDateTime closeTime,
+            @Null
+            @Future(message = "start time mus be a future date")
+            LocalDateTime startTime,
+            @Null
+            @Future(message = "complete time mus be a future date")
+            LocalDateTime completeTime,
             @Null
             @Min(value = 1, message = "number minimum must be greater than 0")
             int numberMinimum,
@@ -346,7 +284,13 @@ public class CourseController {
             @Max(value = 100, message = "number maximum must be greater than 0")
             int numberMaximum,
             @Null
-            String storeStatus
+            CourseStatus courseStatus,
+            @Null
+            @Min(value = 0, message = "price must be greater than 0")
+            @Max(value = 100000000, message = "price must be less than 100.000.000")
+            double price,
+            @Null
+            String teacherId
     ){};
         public String getFileExtension(String filename) {
             int dotIndex = filename.lastIndexOf(".");
