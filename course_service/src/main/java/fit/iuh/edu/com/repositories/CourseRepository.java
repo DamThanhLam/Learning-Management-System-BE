@@ -29,23 +29,22 @@ public class CourseRepository {
         DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
         course.setId(java.util.UUID.randomUUID().toString());
         courseTable.putItem(course);
-        System.out.println("Course added successfully: " + course.getCourseName());
         return course;
     }
-
-    public Course update(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        courseTable.updateItem(course);
-        return course;
-    }
-
-    public void delete(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        course.setStatus(CourseStatus.DELETED);
-        courseTable.updateItem(course);
-    }
+//
+//    public Course update(Course course) {
+//        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
+//        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
+//        courseTable.updateItem(course);
+//        return course;
+//    }
+//
+//    public void delete(Course course) {
+//        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
+//        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
+//        course.setStatus(CourseStatus.DELETED);
+//        courseTable.updateItem(course);
+//    }
     public ScanResponse findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
 
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();

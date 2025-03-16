@@ -29,6 +29,8 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/course/search-text-by-course-name").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(
                         httpSecuritySessionManagementConfigurer ->
