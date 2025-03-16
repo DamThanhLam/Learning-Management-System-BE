@@ -10,6 +10,7 @@ import fit.iuh.edu.com.dtos.ResponseUser;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.User;
+import fit.iuh.edu.com.services.BL.CourseServiceBL;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
@@ -53,17 +54,13 @@ public class CourseController {
     @Autowired
     private CourseServiceImpl courseServiceImpl;
 
-    private final WebClient webClient;
-
-
-    public CourseController(WebClient.Builder webClientBuilder, @Value("${api.v1.baseUrl.userApi}") String baseUrl) {
-        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
-
-    }
-    @PostMapping(path = "/demo")
-    public ResponseEntity<?> getDemo() {
-        return ResponseEntity.ok(userServiceBL.getUser());
-    }
+//    private final WebClient webClient;
+//
+//
+//    public CourseController(WebClient.Builder webClientBuilder, @Value("${api.v1.baseUrl.userApi}") String baseUrl) {
+//        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+//
+//    }
 
 
     //
@@ -72,6 +69,39 @@ public class CourseController {
 //        Course course = courseServiceImpl.getCourseDetailById(courseId);
 //        return ResponseEntity.ok(course);
 //    }
+    @PreAuthorize("hasRole('STUDENT')")
+    @GetMapping("/student")
+    public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName(),pageSize,lastEvaluatedKey);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",courses);
+        response.put("message", "success");
+        return ResponseEntity.ok(response);
+    }
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/teacher")
+    public ResponseEntity<?> listCoursesByTeacherId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByTeacherID(authentication.getName(),pageSize,lastEvaluatedKey);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",courses);
+        response.put("message", "success");
+        return ResponseEntity.ok(response);
+    }
+
     @PreAuthorize("hasAnyRole('TEACHER')")
     @PostMapping(path = "/add-course")
     public ResponseEntity<?> addCourse(@Valid CourseRequestAdd courseRequestAdd, BindingResult bindingResult) throws IOException {
@@ -102,7 +132,10 @@ public class CourseController {
         User user = userServiceBL.getUser();
         Course course = courseRequestAdd.covertCourseRequestAddToCourse(urlAvt.toString(), user.getUserName(),user.getId());
         Course courseResult = courseServiceImpl.create(course);
-        response.put("course", courseResult);
+
+        response.put("code",200);
+        response.put("data",courseResult);
+        response.put("message", "success");
         return ResponseEntity.ok(response);
     }
 

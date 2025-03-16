@@ -12,7 +12,7 @@ import java.util.Map;
 @Service
 public interface CourseServiceBL {
     Course create(Course course);
+    List<Course> getCoursesByStudentID(String studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
 
-//    PaginatedScanList<Course> getAllCoursesByStudentID(int studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
-//    PaginatedScanList<Course> getAllCoursesByTeacherID(int teacherID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
+    List<Course> getCoursesByTeacherID(String name, int pageSize, Map<String, AttributeValue> lastEvaluatedKey);
 }
