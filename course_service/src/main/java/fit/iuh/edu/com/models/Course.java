@@ -30,6 +30,9 @@ public class Course {
     private String urlAvt;
     private float totalReview;
     private CourseLevel level;
+    private int countOrders;
+    private int countReviews;
+    private int countLectures;
     @DynamoDbPartitionKey
     @DynamoDbAttribute("id")
     public String getId() {

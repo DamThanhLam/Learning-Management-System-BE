@@ -1,23 +1,12 @@
 package fit.iuh.edu.com.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fit.iuh.edu.com.dtos.AttributeSearchCourse;
-import fit.iuh.edu.com.dtos.CourseRequestAdd;
-import fit.iuh.edu.com.dtos.CourseRequestUpdate;
-import fit.iuh.edu.com.dtos.ResponseUser;
-import fit.iuh.edu.com.enums.CourseStatus;
+import fit.iuh.edu.com.dtos.*;
 import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.User;
-import fit.iuh.edu.com.services.BL.CourseServiceBL;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
-import fit.iuh.edu.com.services.Impl.UserServiceImpl;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -25,19 +14,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import java.io.IOException;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/course")
@@ -64,11 +47,15 @@ public class CourseController {
 
 
     //
-//    @GetMapping(path = "get-course-detail-by-id")
-//    public ResponseEntity<?> getCourseDetailById(@RequestParam("course-id") String courseId){
-//        Course course = courseServiceImpl.getCourseDetailById(courseId);
-//        return ResponseEntity.ok(course);
-//    }
+    @GetMapping
+    public ResponseEntity<?> getCourseDetailById(@RequestParam("id") String courseId){
+        Course course = courseServiceImpl.getCourseDetailById(courseId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",course);
+        response.put("message", "success");
+        return ResponseEntity.ok(course);
+    }
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/student")
     public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -79,9 +66,21 @@ public class CourseController {
         }
         List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName(),pageSize,lastEvaluatedKey);
 
+        List<CourseOfStudentResponse> coursesResponse = courses.stream()
+                .map(course -> CourseOfStudentResponse.builder()
+                        .id(course.getId())
+                        .price(course.getPrice())
+                        .courseName(course.getCourseName())
+                        .countReviews(course.getCountReviews())
+                        .teacherName(course.getTeacherName())
+                        .teacherId(course.getTeacherId())
+                        .totalReview(course.getTotalReview())
+                        .build())
+                .toList();
+
         Map<String, Object> response = new HashMap<>();
         response.put("code",200);
-        response.put("data",courses);
+        response.put("data",coursesResponse);
         response.put("message", "success");
         return ResponseEntity.ok(response);
     }
@@ -94,10 +93,25 @@ public class CourseController {
             lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
         }
         List<Course> courses = courseServiceImpl.getCoursesByTeacherID(authentication.getName(),pageSize,lastEvaluatedKey);
+        List<CourseOfTeacherResponse> coursesResponse = new ArrayList<>();
+
+        courses.forEach(course -> {
+            CourseOfTeacherResponse courseOfStudentResponse = CourseOfTeacherResponse
+                    .builder()
+                    .id(course.getId())
+                    .price(course.getPrice())
+                    .courseName(course.getCourseName())
+                    .countReviews(course.getCountReviews())
+                    .countLectures(course.getCountLectures())
+                    .countOrders(course.getCountOrders())
+                    .status(course.getStatus())
+                    .build();
+            coursesResponse.add(courseOfStudentResponse);
+        });
 
         Map<String, Object> response = new HashMap<>();
         response.put("code",200);
-        response.put("data",courses);
+        response.put("data",coursesResponse);
         response.put("message", "success");
         return ResponseEntity.ok(response);
     }

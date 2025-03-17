@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class ResponseUser {
+public class UserResponse {
     fit.iuh.edu.com.models.User user;
 
 }

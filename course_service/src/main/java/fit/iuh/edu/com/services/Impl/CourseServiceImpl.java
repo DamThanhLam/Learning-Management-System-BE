@@ -56,6 +56,11 @@ public class CourseServiceImpl implements CourseServiceBL {
         return mappingCoursesFromScanResponse(scanResponse);
     }
 
+    @Override
+    public Course getCourseDetailById(String courseId) {
+        return courseRepository.getCourseDetailById(courseId);
+    }
+
 
     //
 //    @Override
@@ -122,6 +127,15 @@ public class CourseServiceImpl implements CourseServiceBL {
                 }catch (Exception e){
                     course.setTotalReview(0);
                 }
+            }
+            if(item.containsKey("countOrders")){
+                course.setCountOrders(Integer.parseInt(item.get("countOrders").s()));
+            }
+            if(item.containsKey("countLectures")){
+                course.setCountOrders(Integer.parseInt(item.get("countLectures").s()));
+            }
+            if(item.containsKey("countReviews")){
+                course.setCountOrders(Integer.parseInt(item.get("countReviews").s()));
             }
 
             courses.add(course);

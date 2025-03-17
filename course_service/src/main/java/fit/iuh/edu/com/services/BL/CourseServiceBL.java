@@ -15,4 +15,6 @@ public interface CourseServiceBL {
     List<Course> getCoursesByStudentID(String studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey);
 
     List<Course> getCoursesByTeacherID(String name, int pageSize, Map<String, AttributeValue> lastEvaluatedKey);
+
+    Course getCourseDetailById(String courseId);
 }

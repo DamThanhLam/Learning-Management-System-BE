@@ -21,10 +21,6 @@ public class UserServiceImpl implements UserServiceBL {
     @Override
     public User getUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if(authentication.getPrincipal() instanceof Jwt jwt){
-            Map<String, Object> claims = jwt.getClaims();
-            return userRepository.getUserById(claims.get("sub").toString());
-        }
-        return null;
+        return userRepository.getUserById(authentication.getName().toString());
     }
 }
