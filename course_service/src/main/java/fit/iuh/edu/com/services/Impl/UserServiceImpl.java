@@ -17,7 +17,7 @@ public class UserServiceImpl implements UserServiceBL {
     @Autowired
     private UserRepository userRepository;
 
-    @PostAuthorize("returnObject.id == authentication.principal.claims['sub']")
+    @PostAuthorize("returnObject.id == authentication.name")
     @Override
     public User getUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

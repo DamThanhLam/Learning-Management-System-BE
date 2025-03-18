@@ -23,13 +23,21 @@ import java.util.Map;
 public class CourseRepository {
     @Autowired
     private DynamoDbClient dynamoDBClient;
-
-    public Course create(Course course) {
+    private DynamoDbTable<Course> dynamoDbTable;
+    public CourseRepository(){
         DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
+        dynamoDbTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
+
+    }
+    public Course create(Course course) {
+
         course.setId(java.util.UUID.randomUUID().toString());
-        courseTable.putItem(course);
+        dynamoDbTable.putItem(course);
         return course;
+    }
+    public Course courseExist(String courseId) {
+        Key key = Key.builder().partitionValue(courseId).build();
+        return dynamoDbTable.getItem(key);
     }
 //
 //    public Course update(Course course) {
@@ -39,12 +47,7 @@ public class CourseRepository {
 //        return course;
 //    }
 //
-//    public void delete(Course course) {
-//        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
-//        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-//        course.setStatus(CourseStatus.DELETED);
-//        courseTable.updateItem(course);
-//    }
+
     public ScanResponse findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
 
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
@@ -138,5 +141,10 @@ public class CourseRepository {
         }
         ScanRequest request = requestBuilder.build();
         return dynamoDBClient.scan(request);
+    }
+
+
+    public Course updateCourse(Course course) {
+        return dynamoDbTable.updateItem(course);
     }
 }

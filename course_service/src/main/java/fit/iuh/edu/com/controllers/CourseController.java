@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import java.io.IOException;
 import java.net.URL;
@@ -25,9 +26,9 @@ import java.util.List;
 @RestController
 @RequestMapping("api/v1/course")
 public class CourseController {
-    private static final List<String> ALLOWED_FILE_TYPES = Arrays.asList("image/jpeg", "image/png");
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png");
-    private static final long MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final List<String> ALLOWED_FILE_TYPES_IMAGE = Arrays.asList("image/jpeg", "image/png");
+    private static final List<String> ALLOWED_EXTENSIONS_IMAGE = Arrays.asList("jpg", "jpeg", "png");
+    private static final long MAX_SIZE_IMAGE = 5 * 1024 * 1024; // 5MB
     @Value("${aws.s3.bucket.name}")
     private String bucketName;
     @Autowired
@@ -56,6 +57,45 @@ public class CourseController {
         response.put("message", "success");
         return ResponseEntity.ok(course);
     }
+
+    @PutMapping
+    public ResponseEntity<?> updateCourse(@Valid CourseRequestUpdate courseRequestUpdate, BindingResult bindingResult) throws IOException {
+        Map<String, Object> response = new HashMap<>();
+        if(bindingResult.hasErrors()) {
+            response.put("status","error");
+            response.put("message",bindingResult.getAllErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if(courseServiceImpl.checkCourseBeforeUpdate(courseRequestUpdate.getId())){
+            Course updatedCourseResponse = null;
+            Course course = courseServiceImpl.getCourseDetailById(courseRequestUpdate.getId());
+            if(courseRequestUpdate.getFileAvt() != null){
+                ResponseEntity<?> resultCheckFileImage = checkFileImage(courseRequestUpdate.getFileAvt());
+                if(resultCheckFileImage != null){
+                    return resultCheckFileImage;
+                }
+                String urlAvtOld = courseServiceImpl.getCourseDetailById(courseRequestUpdate.getId()).getUrlAvt();
+                int indexSlashEnd = urlAvtOld.lastIndexOf(".amazonaws.com");
+                String key = urlAvtOld.substring(indexSlashEnd + 15);
+                System.out.println("key old: "+key);
+                bucketServiceBL.removeObjectFromBucket(bucketName,key);
+                String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestUpdate.getFileAvt(),"images");
+                System.out.println("urlAvt new: "+urlAvt);
+                updatedCourseResponse = courseServiceImpl.updateCourse(courseRequestUpdate.toCourse(urlAvt,course));
+
+            }else{
+                updatedCourseResponse =courseServiceImpl.updateCourse(courseRequestUpdate.toCourse(course));
+            }
+            response.put("status","success");
+            response.put("code",200);
+            response.put("data", updatedCourseResponse);
+            return ResponseEntity.ok(response);
+        }
+        response.put("status","error");
+        response.put("message","Course can not update");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/student")
     public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -125,26 +165,14 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         }
-        if(!ALLOWED_FILE_TYPES.contains(courseRequestAdd.getFileAvt().getContentType())) {
-            response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_FILE_TYPES));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-        if(!ALLOWED_EXTENSIONS.contains(getFileExtension(courseRequestAdd.getFileAvt().getOriginalFilename()))) {
-            response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_EXTENSIONS));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
+        ResponseEntity<?> resultCheckFileImage = checkFileImage(courseRequestAdd.getFileAvt());
+        if(resultCheckFileImage != null){
+            return resultCheckFileImage;
         }
 
-        if(courseRequestAdd.getFileAvt().getSize() > MAX_SIZE) {
-            response.put("errors", Arrays.asList("avt size must be less than " + MAX_SIZE));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-
-        URL urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.getFileAvt(),"images");
+        String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.getFileAvt(),"images");
         User user = userServiceBL.getUser();
-        Course course = courseRequestAdd.covertCourseRequestAddToCourse(urlAvt.toString(), user.getUserName(),user.getId());
+        Course course = courseRequestAdd.covertCourseRequestAddToCourse(urlAvt, user.getUserName(),user.getId());
         Course courseResult = courseServiceImpl.create(course);
 
         response.put("code",200);
@@ -153,7 +181,25 @@ public class CourseController {
         return ResponseEntity.ok(response);
     }
 
+    public ResponseEntity<?> checkFileImage(MultipartFile file) {
+        Map<String, Object> response = new HashMap<>();
+        if(!ALLOWED_FILE_TYPES_IMAGE.contains(file.getContentType())) {
+            response.put("errors", "avt content type must be one of " + ALLOWED_FILE_TYPES_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
+        }
+        if(!ALLOWED_EXTENSIONS_IMAGE.contains(getFileExtension(Objects.requireNonNull(file.getOriginalFilename())))) {
+            response.put("errors", "avt content type must be one of " + ALLOWED_EXTENSIONS_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+        }
+
+        if(file.getSize() > MAX_SIZE_IMAGE) {
+            response.put("errors", "avt size must be less than " + MAX_SIZE_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        return null;
+    }
     public String getFileExtension(String filename) {
             int dotIndex = filename.lastIndexOf(".");
             if (dotIndex > 0 && dotIndex < filename.length() - 1) {

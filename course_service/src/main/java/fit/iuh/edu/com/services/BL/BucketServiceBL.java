@@ -20,9 +20,10 @@ public interface BucketServiceBL {
      * @param bucketName
      * @param multipartFile
      * @param path here to save file
-     * @return URL for the file to access on the internet
+     * @return String for the file to access on the internet
      * @throws IOException
      */
-    URL putObjectToBucket(String bucketName, MultipartFile multipartFile, String ...path) throws ExecutionException, InterruptedException, IOException;
+    String putObjectToBucket(String bucketName, MultipartFile multipartFile, String ...path) throws ExecutionException, InterruptedException, IOException;
     URL genarateUrl(String bucketName, String objectName);
+    void removeObjectFromBucket(String bucketName, String objectName);
 }

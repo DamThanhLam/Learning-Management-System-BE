@@ -61,6 +61,17 @@ public class CourseServiceImpl implements CourseServiceBL {
         return courseRepository.getCourseDetailById(courseId);
     }
 
+    @Override
+    public boolean checkCourseBeforeUpdate(String courseId) {
+        Course course = courseRepository.courseExist(courseId);
+        return course != null && course.getStatus().equals(CourseStatus.DRAFT);
+    }
+
+    @Override
+    public Course updateCourse(Course course) {
+        return courseRepository.updateCourse(course);
+    }
+
 
     //
 //    @Override
@@ -119,6 +130,7 @@ public class CourseServiceImpl implements CourseServiceBL {
                 course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
             }
             if(item.containsKey("level")){
+                System.out.println(item.get("level").s());
                 course.setLevel(CourseLevel.valueOf(item.get("level").s()));
             }
             if(item.containsKey("totalReview")){
@@ -129,13 +141,13 @@ public class CourseServiceImpl implements CourseServiceBL {
                 }
             }
             if(item.containsKey("countOrders")){
-                course.setCountOrders(Integer.parseInt(item.get("countOrders").s()));
+                course.setCountOrders(Integer.parseInt(item.get("countOrders").n()));
             }
             if(item.containsKey("countLectures")){
-                course.setCountOrders(Integer.parseInt(item.get("countLectures").s()));
+                course.setCountOrders(Integer.parseInt(item.get("countLectures").n()));
             }
             if(item.containsKey("countReviews")){
-                course.setCountOrders(Integer.parseInt(item.get("countReviews").s()));
+                course.setCountOrders(Integer.parseInt(item.get("countReviews").n()));
             }
 
             courses.add(course);

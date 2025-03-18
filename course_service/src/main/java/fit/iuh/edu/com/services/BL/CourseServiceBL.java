@@ -17,4 +17,6 @@ public interface CourseServiceBL {
     List<Course> getCoursesByTeacherID(String name, int pageSize, Map<String, AttributeValue> lastEvaluatedKey);
 
     Course getCourseDetailById(String courseId);
+    boolean checkCourseBeforeUpdate(String courseId);
+    Course updateCourse(Course course);
 }
