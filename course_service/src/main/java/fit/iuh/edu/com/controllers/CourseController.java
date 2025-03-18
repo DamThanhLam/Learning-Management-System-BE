@@ -1,78 +1,179 @@
 package fit.iuh.edu.com.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fit.iuh.edu.com.enums.CourseStatus;
+import fit.iuh.edu.com.dtos.*;
 import fit.iuh.edu.com.models.Course;
-import fit.iuh.edu.com.services.BL.BucketServiceBL;
+import fit.iuh.edu.com.models.User;
+import fit.iuh.edu.com.services.BL.UserServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
-import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import org.checkerframework.checker.units.qual.A;
-import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-
-import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/v1/course")
 public class CourseController {
-    private static final List<String> ALLOWED_FILE_TYPES = Arrays.asList("image/jpeg", "image/png");
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png");
-    private static final long MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final List<String> ALLOWED_FILE_TYPES_IMAGE = Arrays.asList("image/jpeg", "image/png");
+    private static final List<String> ALLOWED_EXTENSIONS_IMAGE = Arrays.asList("jpg", "jpeg", "png");
+    private static final long MAX_SIZE_IMAGE = 5 * 1024 * 1024; // 5MB
     @Value("${aws.s3.bucket.name}")
     private String bucketName;
     @Autowired
     private BucketServiceImpl bucketServiceBL;
     @Autowired
+    private UserServiceBL userServiceBL;
+    @Autowired
     private CourseServiceImpl courseServiceImpl;
 
-    private final WebClient webClient;
-
-    @Value("${api.v1.baseUrl.userApi}")
-    private String baseUrl;
-
-    public CourseController(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
-    }
-    @GetMapping(path = "search-text-own-or-studentId-by-course-name")
-    public ResponseEntity<?> searchTextOwnByCourseName(@RequestParam("courseName") String courseName, @RequestParam(value = "lastEvaluatedKey", defaultValue = "null")Map<String, AttributeValue> lastEvaluatedKey, @RequestParam(value = "page-size", defaultValue = "10") int pageSize) {
+    @GetMapping
+    public ResponseEntity<?> getCourseDetailById(@RequestParam("id") String courseId){
+        Course course = courseServiceImpl.getCourseDetailById(courseId);
         Map<String, Object> response = new HashMap<>();
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        ScanResponse scanResponse = courseServiceImpl.findOwnOrStudentIdByCourseName(user.getUsername(),courseName, lastEvaluatedKey, pageSize);
-        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
-        response.put("lastEvaluateKey", scanResponse.lastEvaluatedKey());
+        response.put("code",200);
+        response.put("data",course);
+        response.put("message", "success");
+        return ResponseEntity.ok(course);
+    }
+
+    @PutMapping
+    public ResponseEntity<?> updateCourse(@Valid CourseRequestUpdate courseRequestUpdate, BindingResult bindingResult) throws IOException {
+        Map<String, Object> response = new HashMap<>();
+        if(bindingResult.hasErrors()) {
+            response.put("status","error");
+            response.put("message",bindingResult.getAllErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if(courseServiceImpl.checkCourseBeforeUpdate(courseRequestUpdate.getId())){
+            Course updatedCourseResponse = null;
+            Course course = courseServiceImpl.getCourseDetailById(courseRequestUpdate.getId());
+            if(courseRequestUpdate.getFileAvt() != null){
+                ResponseEntity<?> resultCheckFileImage = checkFileImage(courseRequestUpdate.getFileAvt());
+                if(resultCheckFileImage != null){
+                    return resultCheckFileImage;
+                }
+                String urlAvtOld = courseServiceImpl.getCourseDetailById(courseRequestUpdate.getId()).getUrlAvt();
+                int indexSlashEnd = urlAvtOld.lastIndexOf(".amazonaws.com");
+                String key = urlAvtOld.substring(indexSlashEnd + 15);
+                System.out.println("key old: "+key);
+                bucketServiceBL.removeObjectFromBucket(bucketName,key);
+                String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestUpdate.getFileAvt(),"images");
+                System.out.println("urlAvt new: "+urlAvt);
+                updatedCourseResponse = courseServiceImpl.updateCourse(courseRequestUpdate.toCourse(urlAvt,course));
+
+            }else{
+                updatedCourseResponse =courseServiceImpl.updateCourse(courseRequestUpdate.toCourse(course));
+            }
+            response.put("status","success");
+            response.put("code",200);
+            response.put("data", updatedCourseResponse);
+            return ResponseEntity.ok(response);
+        }
+        response.put("status","error");
+        response.put("message","Course can not update");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> listCourses(@RequestParam(required = false) String courseName, @RequestParam(required = false) String category ,@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByCourseNameOrCategory(courseName,category,pageSize,lastEvaluatedKey);
+
+        List<CourseOfStudentResponse> coursesResponse = courses.stream()
+                .map(course -> CourseOfStudentResponse.builder()
+                        .id(course.getId())
+                        .price(course.getPrice())
+                        .courseName(course.getCourseName())
+                        .countReviews(course.getCountReviews())
+                        .teacherName(course.getTeacherName())
+                        .teacherId(course.getTeacherId())
+                        .totalReview(course.getTotalReview())
+                        .build())
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",coursesResponse);
+        response.put("message", "success");
+        return ResponseEntity.ok(response);
+    }
+    @PreAuthorize("hasRole('STUDENT')")
+    @GetMapping("/student")
+    public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName(),pageSize,lastEvaluatedKey);
+
+        List<CourseOfStudentResponse> coursesResponse = courses.stream()
+                .map(course -> CourseOfStudentResponse.builder()
+                        .id(course.getId())
+                        .price(course.getPrice())
+                        .courseName(course.getCourseName())
+                        .countReviews(course.getCountReviews())
+                        .teacherName(course.getTeacherName())
+                        .teacherId(course.getTeacherId())
+                        .totalReview(course.getTotalReview())
+                        .build())
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",coursesResponse);
+        response.put("message", "success");
+        return ResponseEntity.ok(response);
+    }
+    @PreAuthorize("hasRole('TEACHER')")
+    @GetMapping("/teacher")
+    public ResponseEntity<?> listCoursesByTeacherId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByTeacherID(authentication.getName(),pageSize,lastEvaluatedKey);
+        List<CourseOfTeacherResponse> coursesResponse = new ArrayList<>();
+
+        courses.forEach(course -> {
+            CourseOfTeacherResponse courseOfStudentResponse = CourseOfTeacherResponse
+                    .builder()
+                    .id(course.getId())
+                    .price(course.getPrice())
+                    .courseName(course.getCourseName())
+                    .countReviews(course.getCountReviews())
+                    .countLectures(course.getCountLectures())
+                    .countOrders(course.getCountOrders())
+                    .status(course.getStatus())
+                    .build();
+            coursesResponse.add(courseOfStudentResponse);
+        });
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",coursesResponse);
+        response.put("message", "success");
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER')")
     @PostMapping(path = "/add-course")
     public ResponseEntity<?> addCourse(@Valid CourseRequestAdd courseRequestAdd, BindingResult bindingResult) throws IOException {
         Map<String, Object> response = new HashMap<>();
@@ -81,231 +182,42 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         }
-        if(!ALLOWED_FILE_TYPES.contains(courseRequestAdd.avt.getContentType())) {
-            response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_FILE_TYPES));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-        if(!ALLOWED_EXTENSIONS.contains(getFileExtension(courseRequestAdd.avt.getOriginalFilename()))) {
-            response.put("errors", Arrays.asList("avt content type must be one of " + ALLOWED_EXTENSIONS));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
+        ResponseEntity<?> resultCheckFileImage = checkFileImage(courseRequestAdd.getFileAvt());
+        if(resultCheckFileImage != null){
+            return resultCheckFileImage;
         }
 
-        if(courseRequestAdd.avt.getSize() > MAX_SIZE) {
-            response.put("errors", Arrays.asList("avt size must be less than " + MAX_SIZE));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-
-        if(courseRequestAdd.openTime.isAfter(courseRequestAdd.closeTime)){
-            response.put("errors", Arrays.asList("open time must be less than end time"));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-        if(courseRequestAdd.startTime.isAfter(courseRequestAdd.completeTime)){
-            response.put("errors", Arrays.asList("start time must be less than end time"));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-        if(courseRequestAdd.closeTime.isAfter(courseRequestAdd.startTime)){
-            response.put("errors", Arrays.asList("close time must be less than start time"));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-
-        fit.iuh.edu.com.models.User teacher = getUserById(courseRequestAdd.teacherId);
-        if (teacher == null){
-            response.put("errors", Arrays.asList("teacher not found. Our fault not yours, please contract us to check."));
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        }
-
-
-        URL urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.avt,"images");
-
-
-        Course course = covertCourseRequestAddToCourse(courseRequestAdd, urlAvt,teacher.getId(), teacher.getUserName());
-
+        String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, courseRequestAdd.getFileAvt(),"images");
+        User user = userServiceBL.getUser();
+        Course course = courseRequestAdd.covertCourseRequestAddToCourse(urlAvt, user.getUserName(),user.getId());
         Course courseResult = courseServiceImpl.create(course);
 
-        response.put("course", courseResult);
+        response.put("code",200);
+        response.put("data",courseResult);
+        response.put("message", "success");
         return ResponseEntity.ok(response);
     }
 
-    private fit.iuh.edu.com.models.User getUserById(String teacherId) {
-
-        return webClient.get()
-                .uri("&id="+teacherId)
-                .retrieve()
-                .bodyToMono(fit.iuh.edu.com.models.User.class)
-                .block();
-    }
-
-    @PostMapping(path = "search-text-by-course-name")
-    public ResponseEntity<?> searchTextByCourseName(@Valid AttributeSearchCourse attributeSearchCourse, BindingResult bindingResult ) throws JsonProcessingException {
+    public ResponseEntity<?> checkFileImage(MultipartFile file) {
         Map<String, Object> response = new HashMap<>();
-        Map<String, String> rawMap  = new HashMap<>();
-        ObjectMapper objectMapper = new ObjectMapper();
-        Map<String, AttributeValue> lastEvaluateKeyMap = new HashMap<>();
-        System.out.println(attributeSearchCourse.lastEvaluateKey);
+        if(!ALLOWED_FILE_TYPES_IMAGE.contains(file.getContentType())) {
+            response.put("errors", "avt content type must be one of " + ALLOWED_FILE_TYPES_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
-        if (attributeSearchCourse.lastEvaluateKey != null) {
-
-            rawMap  = objectMapper.readValue(attributeSearchCourse.lastEvaluateKey, new TypeReference<Map<String, String>>() {});
-            lastEvaluateKeyMap = rawMap.entrySet().stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            e -> AttributeValue.builder().s(e.getValue()).build() // Convert String to AttributeValue
-                    ));
         }
-        ScanResponse scanResponse = courseServiceImpl.findByCourseName(attributeSearchCourse.courseName, !lastEvaluateKeyMap.isEmpty() ? lastEvaluateKeyMap:null, attributeSearchCourse.pageSize);
+        if(!ALLOWED_EXTENSIONS_IMAGE.contains(getFileExtension(Objects.requireNonNull(file.getOriginalFilename())))) {
+            response.put("errors", "avt content type must be one of " + ALLOWED_EXTENSIONS_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
-        Map<String, Object> convertedMap = scanResponse.lastEvaluatedKey().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().s() // Lấy giá trị String (hoặc số, boolean nếu có)
-                ));
-
-        response.put("courses", mappingCoursesFromScanResponse(scanResponse));
-        response.put("lastEvaluateKey", convertedMap);
-
-        return ResponseEntity.ok(response);
-    }
-    public List<Course> mappingCoursesFromScanResponse(ScanResponse response){
-        List<Course> courses = new ArrayList<>();
-        for (Map<String, AttributeValue> item: response.items()){
-            Course course = new Course();
-
-            // Ánh xạ các trường từ item vào đối tượng Course
-            if (item.containsKey("id")) {
-                course.setId(item.get("id").s());  // Giả sử "id" là chuỗi
-            }
-            if (item.containsKey("courseName")) {
-                course.setCourseName(item.get("courseName").s());
-            }
-            if (item.containsKey("description")) {
-                course.setDescription(item.get("description").s());
-            }
-            if (item.containsKey("price")) {
-                course.setPrice(Double.parseDouble(item.get("price").n()));
-            }
-            if (item.containsKey("createTime")) {
-                course.setCreateTime(LocalDateTime.parse(item.get("createTime").s()));
-            }
-            if (item.containsKey("updateTime")) {
-                course.setUpdateTime(LocalDateTime.parse(item.get("updateTime").s()));
-            }
-            if (item.containsKey("openTime")) {
-                course.setOpenTime(LocalDateTime.parse(item.get("openTime").s()));
-            }
-            if (item.containsKey("closeTime")) {
-                course.setCloseTime(LocalDateTime.parse(item.get("closeTime").s()));
-            }
-            if (item.containsKey("startTime")) {
-                course.setStartTime(LocalDateTime.parse(item.get("startTime").s()));
-            }
-
-            if (item.containsKey("completeTime")) {
-                course.setCompleteTime(LocalDateTime.parse(item.get("completeTime").s()));
-            }
-            if (item.containsKey("urlAvt")) {
-                course.setUrlAvt(item.get("urlAvt").s());
-            }
-            if (item.containsKey("teacherName")) {
-                course.setTeacherName(item.get("teacherName").s());
-            }
-            if (item.containsKey("numberMinimum")) {
-                course.setNumberMinimum(Integer.parseInt(item.get("numberMinimum").n()));
-            }
-            if (item.containsKey("numberMaximum")) {
-                course.setNumberMaximum(Integer.parseInt(item.get("numberMaximum").n()));
-            }
-            if (item.containsKey("numberCurrent")) {
-                course.setNumberCurrent(Integer.parseInt(item.get("numberCurrent").n()));
-            }
-            courses.add(course);
         }
-        return courses;
-    }
-    private Course covertCourseRequestAddToCourse(CourseRequestAdd courseRequestAdd, URL urlAvt, String teacherId, String teacherName) throws IOException {
-        Course course = new Course(
-                courseRequestAdd.courseName,
-                courseRequestAdd.description,
-                courseRequestAdd.price,
-                courseRequestAdd.openTime,
-                courseRequestAdd.closeTime,
-                courseRequestAdd.startTime,
-                courseRequestAdd.completeTime,
-                CourseStatus.SEND,
-                urlAvt.toString(),
-                teacherId,
-                teacherName,
-                courseRequestAdd.numberMinimum,
-                courseRequestAdd.numberMaximum,
-                0);
-        return course;
-    }
 
-    private record AttributeSearchCourse(
-            String courseName,
-            int pageSize,
-            String lastEvaluateKey
-    ){
-        public AttributeSearchCourse {
-            if (pageSize <= 0) {
-                pageSize = 10; // Giá trị mặc định
-            }
+        if(file.getSize() > MAX_SIZE_IMAGE) {
+            response.put("errors", "avt size must be less than " + MAX_SIZE_IMAGE);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
+        return null;
     }
-    private record CourseRequestAdd(
-            @NotNull(message = "course name must not be null")
-            @Length(min = 3, max = 50,message = "course name has length minimum 3 and maximum 50")
-            String courseName,
-            @NotNull(message = "description must not be null")
-            @Length(min = 10, max = 150, message = "description has length minimum 10 and maximum 150")
-            String description,
-            @NotNull(message = "category must not be null")
-            String category,
-            @NotNull(message = "open time must not be null")
-            @Future(message = "open time must be a future date")
-            LocalDateTime openTime,
-            @NotNull(message = "close time must not be null")
-            @Future(message = "close time mus be a future date")
-            LocalDateTime closeTime,
-            @NotNull(message = "start time must not be null")
-            @Future(message = "start time mus be a future date")
-            LocalDateTime startTime,
-            @NotNull(message = "complete time must not be null")
-            @Future(message = "complete time mus be a future date")
-            LocalDateTime completeTime,
-            @Min(value = 1, message = "number minimum must be greater than 0")
-            int numberMinimum,
-            @Max(value = 100, message = "number maximum must be greater than 0")
-            int numberMaximum,
-            @NotNull(message = "file avt must not be null")
-            MultipartFile avt,
-            @NotNull(message = "price must not be null")
-            @Min(value = 0, message = "price must be greater than 0")
-            @Max(value = 100000000, message = "price must be less than 100.000.000")
-            double price,
-            @NotNull(message = "teacher id must not be null")
-            String teacherId
-    ){};
-    private record CourseRequestUpdate(
-            @NotNull(message = "course id must not be null")
-            String id,
-            String category,
-            @Null
-            @Min(value = 1, message = "number minimum must be greater than 0")
-            int numberMinimum,
-            @Null
-            @Max(value = 100, message = "number maximum must be greater than 0")
-            int numberMaximum,
-            @Null
-            String storeStatus
-    ){};
-        public String getFileExtension(String filename) {
+    public String getFileExtension(String filename) {
             int dotIndex = filename.lastIndexOf(".");
             if (dotIndex > 0 && dotIndex < filename.length() - 1) {
                 return filename.substring(dotIndex + 1).toLowerCase();

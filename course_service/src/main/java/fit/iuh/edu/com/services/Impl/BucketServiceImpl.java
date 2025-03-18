@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.io.Files.getFileExtension;
@@ -54,7 +55,7 @@ public class BucketServiceImpl implements BucketServiceBL {
     }
 
 
-    public URL putObjectToBucket(String bucketName, MultipartFile multipartFile, String ...path ) throws IOException {
+    public String putObjectToBucket(String bucketName, MultipartFile multipartFile, String ...path ) throws IOException {
         // Kiểm tra nếu tệp là một file trong bộ nhớ
         if (multipartFile.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
@@ -75,15 +76,29 @@ public class BucketServiceImpl implements BucketServiceBL {
         for (String folder : path) {
             fullPath.append(folder).append("/");
         }
+        System.out.println("Uploading to S3:");
+        System.out.println("Bucket: " + bucketName);
+        System.out.println("Key: " + imageFolder + fullPath + uniqueFileName);
+        System.out.println("Local File Path: " + fileAvt.getAbsolutePath());
+        System.out.println("File Exists Locally: " + fileAvt.exists());
+        System.out.println("File size: " + fileAvt.length());
+
         // Tạo một yêu cầu PUT object với bucketName và objectName
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(imageFolder+"/"+fullPath+uniqueFileName)
-                .acl(ObjectCannedACL.PUBLIC_READ)
+                .key(imageFolder+fullPath+uniqueFileName)
                 .build();
-        s3AsyncClient().putObject(putObjectRequest, requestBody);
-        // Gửi yêu cầu tải lên đối tượng đến S3
-        return genarateUrl(bucketName, uniqueFileName);
+        CompletableFuture<PutObjectResponse> response  = s3AsyncClient().putObject(putObjectRequest, requestBody);
+        response.join();
+        response.whenComplete((resp, ex) -> {
+            if (ex != null) {
+                System.err.println("Upload thất bại: " + ex.getMessage());
+                ex.printStackTrace(); // In lỗi chi tiết
+            } else {
+                System.out.println("Upload thành công: " + resp);
+            }
+        });
+        return  "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + putObjectRequest.key();
     }
 
     @Override
@@ -92,5 +107,18 @@ public class BucketServiceImpl implements BucketServiceBL {
         GetUrlRequest getUrlRequest = GetUrlRequest.builder().bucket(bucketName).key(objectName).build();
         URL url = s3AsyncClient().utilities().getUrl(getUrlRequest);
         return url;
+    }
+
+    @Override
+    public void removeObjectFromBucket(String bucketName, String key) {
+        Delete del = Delete.builder()
+                .objects(ObjectIdentifier.builder().key(key).build())
+                .build();
+        DeleteObjectsRequest multiObjectDeleteRequest = DeleteObjectsRequest.builder()
+                .bucket(bucketName)
+                .delete(del)
+                .build();
+
+        s3AsyncClient().deleteObjects(multiObjectDeleteRequest);
     }
 }

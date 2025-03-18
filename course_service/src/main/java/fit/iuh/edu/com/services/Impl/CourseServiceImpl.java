@@ -1,120 +1,164 @@
 package fit.iuh.edu.com.services.Impl;
 
+import fit.iuh.edu.com.controllers.CourseController;
+import fit.iuh.edu.com.enums.CourseLevel;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
+import fit.iuh.edu.com.repositories.CourseRepository;
 import fit.iuh.edu.com.services.BL.CourseServiceBL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.enhanced.dynamodb.internal.AttributeValues;
+import software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
+import java.io.IOException;
+import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Consumer;
 
 
 @Primary
 @Service
 public class CourseServiceImpl implements CourseServiceBL {
-    @Value("${aws.region}")
-    private String region;
-    @Value("${aws.accessKeyId}")
-    private String awsAccessKeyId;
 
-    @Value("${aws.secretAccessKey}")
-    private String awsSecretAccessKey;
-
-//    DynamoDbClient dynamoDBClient(){
-//        return DynamoDbClient.builder()
-//                .region(Region.of(region))
-//                .credentialsProvider(ProfileCredentialsProvider.create("LamDEV-Profile"))
-//                .build();
-//    }
-//    @Bean
-    public DynamoDbClient dynamoDBClient() {
-        return DynamoDbClient.builder()
-                .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(awsAccessKeyId, awsSecretAccessKey)))
-                .build();
-    }
+    @Autowired
+    private CourseRepository courseRepository;
 
     @Override
     public Course create(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        course.setId(java.util.UUID.randomUUID().toString());
-        courseTable.putItem(course);
-        System.out.println("Course added successfully: " + course.getCourseName());
-        return course;
+        return courseRepository.create(course);
     }
 
     @Override
-    public Course update(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        courseTable.updateItem(course);
-        return course;
+    public List<Course> getCoursesByStudentID(String studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey) {
+        ScanResponse scanResponse = courseRepository.getCoursesByStudentID(studentID,limit,lastEvaluatedKey);
+        return mappingCoursesFromScanResponse(scanResponse);
     }
 
     @Override
-    public void delete(Course course) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient()).build();
-        DynamoDbTable<Course> courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
-        course.setStatus(CourseStatus.DELETED);
-        courseTable.updateItem(course);
-    }
-    @Override
-    public ScanResponse findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
-        DynamoDbClient dynamoDbClient = dynamoDBClient();
-
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
-
-        ScanRequest query = ScanRequest
-                .builder()
-                .tableName("Course")
-                .filterExpression("contains(courseName, :courseName)")
-                .exclusiveStartKey(lastEvaluatedKey)
-                .expressionAttributeValues(expressionAttributeValues)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent")
-                .limit(pageSize)
-                .build();
-
-
-        ScanResponse response = dynamoDbClient.scan(query);
-
-        return response;
+    public List<Course> getCoursesByTeacherID(String teacherId, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
+        ScanResponse scanResponse = courseRepository.getCoursesByTeacherID(teacherId,pageSize,lastEvaluatedKey);
+        return mappingCoursesFromScanResponse(scanResponse);
     }
 
     @Override
-    public ScanResponse findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
-        DynamoDbClient dbClient = dynamoDBClient();
-
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
-        expressionAttributeValues.put(":userId", AttributeValues.stringValue(username));
-
-        ScanRequest request = ScanRequest
-                .builder()
-                .tableName("Course")
-                .filterExpression("contains(courseName, :courseName) AND teacherId = :userId OR contains(studentIds,:userId)")
-                .expressionAttributeValues(expressionAttributeValues)
-                .projectionExpression("id, courseName, description, price, createTime, updateTime, openTime, closeTime, startTime, completeTime, urlAvt, teacherName, numberMinimum, numberMaximum, numberCurrent")
-                .limit(pageSize)
-                .exclusiveStartKey(lastEvaluatedKey)
-                .build();
-        ScanResponse response = dbClient.scan(request);
-        return response;
+    public Course getCourseDetailById(String courseId) {
+        return courseRepository.getCourseDetailById(courseId);
     }
 
+    @Override
+    public boolean checkCourseBeforeUpdate(String courseId) {
+        Course course = courseRepository.courseExist(courseId);
+        return course != null && course.getStatus().equals(CourseStatus.DRAFT);
+    }
+
+    @Override
+    public Course updateCourse(Course course) {
+        return courseRepository.updateCourse(course);
+    }
+
+    @Override
+    public List<Course> getCoursesByCourseNameOrCategory(String courseName, String category, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
+        ScanResponse scanResponse = courseRepository.getCoursesByCourseNameOrCategory(courseName,category,pageSize,lastEvaluatedKey);
+        return mappingCoursesFromScanResponse(scanResponse);
+    }
+
+
+    //
+//    @Override
+//    public List<Course> findByCourseName(String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
+//        return mappingCoursesFromScanResponse(courseRepository.findByCourseName(courseName, lastEvaluatedKey, pageSize));
+//    }
+//
+//    @Override
+//    public List<Course> findOwnOrStudentIdByCourseName(String username, String courseName, Map<String, AttributeValue> lastEvaluatedKey, int pageSize) {
+//        ScanResponse scanResponse = courseRepository.findOwnOrStudentIdByCourseName(username,courseName,lastEvaluatedKey,pageSize);
+//        return mappingCoursesFromScanResponse(scanResponse);
+//    }
+//
+//    @PostAuthorize("returnObject.teacherId == authentication.name OR returnObject.studentsId.contains(authentication.name)")
+//    @Override
+//    public Course getCourseDetailById(String courseId) {
+//        return courseRepository.getCourseDetailById(courseId);
+//    }
+//
+    public List<Course> mappingCoursesFromScanResponse(ScanResponse response){
+        List<Course> courses = new ArrayList<>();
+        for (Map<String, AttributeValue> item: response.items()){
+            Course course = new Course();
+
+            // Ánh xạ các trường từ item vào đối tượng Course
+            if (item.containsKey("id")) {
+                course.setId(item.get("id").s());  // Giả sử "id" là chuỗi
+            }
+            if (item.containsKey("courseName")) {
+                course.setCourseName(item.get("courseName").s());
+            }
+            if (item.containsKey("description")) {
+                course.setDescription(item.get("description").s());
+            }
+            if (item.containsKey("price")) {
+                course.setPrice(Double.parseDouble(item.get("price").n()));
+            }
+
+            if (item.containsKey("urlAvt")) {
+                course.setUrlAvt(item.get("urlAvt").s());
+            }
+            if (item.containsKey("teacherName")) {
+                course.setTeacherName(item.get("teacherName").s());
+            }
+
+            if(item.containsKey("category")){
+                course.setCategory(item.get("category").s());
+            }
+            if(item.containsKey("status")){
+                course.setStatus(CourseStatus.valueOf(item.get("status").s()));
+            }
+            if(item.containsKey("teacherId")){
+                course.setTeacherId(item.get("teacherId").s());
+            }
+            if(item.containsKey("studentsId")){
+                course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
+            }
+            if(item.containsKey("level")){
+                System.out.println(item.get("level").s());
+                course.setLevel(CourseLevel.valueOf(item.get("level").s()));
+            }
+            if(item.containsKey("totalReview")){
+                try{
+                    course.setTotalReview(Float.parseFloat(item.get("totalReview").s()));
+                }catch (Exception e){
+                    course.setTotalReview(0);
+                }
+            }
+            if(item.containsKey("countOrders")){
+                course.setCountOrders(Integer.parseInt(item.get("countOrders").n()));
+            }
+            if(item.containsKey("countLectures")){
+                course.setCountOrders(Integer.parseInt(item.get("countLectures").n()));
+            }
+            if(item.containsKey("countReviews")){
+                course.setCountOrders(Integer.parseInt(item.get("countReviews").n()));
+            }
+
+            courses.add(course);
+        }
+        return courses;
+    }
 
 }
