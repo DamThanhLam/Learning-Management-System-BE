@@ -72,6 +72,12 @@ public class CourseServiceImpl implements CourseServiceBL {
         return courseRepository.updateCourse(course);
     }
 
+    @Override
+    public List<Course> getCoursesByCourseNameOrCategory(String courseName, String category, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
+        ScanResponse scanResponse = courseRepository.getCoursesByCourseNameOrCategory(courseName,category,pageSize,lastEvaluatedKey);
+        return mappingCoursesFromScanResponse(scanResponse);
+    }
+
 
     //
 //    @Override

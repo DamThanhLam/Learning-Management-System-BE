@@ -38,16 +38,6 @@ public class CourseController {
     @Autowired
     private CourseServiceImpl courseServiceImpl;
 
-//    private final WebClient webClient;
-//
-//
-//    public CourseController(WebClient.Builder webClientBuilder, @Value("${api.v1.baseUrl.userApi}") String baseUrl) {
-//        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
-//
-//    }
-
-
-    //
     @GetMapping
     public ResponseEntity<?> getCourseDetailById(@RequestParam("id") String courseId){
         Course course = courseServiceImpl.getCourseDetailById(courseId);
@@ -96,6 +86,33 @@ public class CourseController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<?> listCourses(@RequestParam(required = false) String courseName, @RequestParam(required = false) String category ,@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
+        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
+            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+        }
+        List<Course> courses = courseServiceImpl.getCoursesByCourseNameOrCategory(courseName,category,pageSize,lastEvaluatedKey);
+
+        List<CourseOfStudentResponse> coursesResponse = courses.stream()
+                .map(course -> CourseOfStudentResponse.builder()
+                        .id(course.getId())
+                        .price(course.getPrice())
+                        .courseName(course.getCourseName())
+                        .countReviews(course.getCountReviews())
+                        .teacherName(course.getTeacherName())
+                        .teacherId(course.getTeacherId())
+                        .totalReview(course.getTotalReview())
+                        .build())
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("data",coursesResponse);
+        response.put("message", "success");
+        return ResponseEntity.ok(response);
+    }
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/student")
     public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {

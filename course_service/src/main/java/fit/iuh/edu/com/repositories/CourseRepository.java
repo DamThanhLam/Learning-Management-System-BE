@@ -147,4 +147,40 @@ public class CourseRepository {
     public Course updateCourse(Course course) {
         return dynamoDbTable.updateItem(course);
     }
+
+    public ScanResponse getCoursesByCourseNameOrCategory(String courseName, String category, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
+        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
+        String filterExpression = "";
+        if(courseName != null && !courseName.isEmpty()){
+            expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
+            filterExpression+="contains(courseName,:courseName)";
+        }
+        if(category != null && !category.isEmpty()){
+            expressionAttributeValues.put(":category", AttributeValues.stringValue(category));
+            if(!filterExpression.isEmpty()){
+                filterExpression+=" OR ";
+            }
+            filterExpression+="contains(category,:category)";
+        }
+        if(!filterExpression.isEmpty()){
+            filterExpression+=" AND ";
+        }
+        expressionAttributeValues.put(":s", AttributeValues.stringValue("OPEN"));
+        Map<String, String> expressionAttributeNames = new HashMap<>();
+        expressionAttributeNames.put("#s", "status");
+        ScanRequest.Builder requestBuilder  = ScanRequest
+                .builder()
+                .tableName("Course")
+                .filterExpression(filterExpression+"#s = :s")
+                .expressionAttributeValues(expressionAttributeValues)
+                .expressionAttributeNames(expressionAttributeNames)
+                .projectionExpression("id, courseName, price, urlAvt, teacherName, category, #s, teacherId")
+                .limit(pageSize != 0 ?pageSize:10);
+        if(lastEvaluatedKey!= null && !lastEvaluatedKey.isEmpty()){
+            System.out.println("lastEvaluatedKey:"+lastEvaluatedKey);
+            requestBuilder .exclusiveStartKey(lastEvaluatedKey);
+        }
+        ScanRequest request = requestBuilder.build();
+        return dynamoDBClient.scan(request);
+    }
 }

@@ -1,7 +1,5 @@
 package fit.iuh.edu.com.configs;
 
-import fit.iuh.edu.com.handlers.CognitoLogoutHandler;
-import org.springframework.cglib.core.Converter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -26,18 +24,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.csrf(AbstractHttpConfigurer::disable)
+        http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/course/search-text-by-course-name").permitAll()
+                        .requestMatchers("/api/v1/course/search").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(
                         httpSecuritySessionManagementConfigurer ->
                         httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(httpSecurityOAuth2ResourceServerConfigurer ->
                         httpSecurityOAuth2ResourceServerConfigurer.jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                );
+                )
+                .anonymous(anonymousConfigurer -> anonymousConfigurer.principal("guest").authorities("ROLE_ANONYMOUS"));
         return http.build();
     }
 //    @Bean
