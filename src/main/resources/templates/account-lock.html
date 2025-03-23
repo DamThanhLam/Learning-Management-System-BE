@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml">
+<head>
+    <meta charset="utf-8">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings xmlns:o="urn:schemas-microsoft-com:office:office">
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <style>
+        td,th,div,p,a,h1,h2,h3,h4,h5,h6 {font-family: "Segoe UI", sans-serif; mso-line-height-rule: exactly;}
+    </style>
+    <![endif]-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" media="screen">
+    <style>
+        .hover-bg-red-700:hover {
+            background-color: #b91c1c !important
+        }
+        @media (max-width: 600px) {
+            .sm-p-6 {
+                padding: 24px !important
+            }
+            .sm-px-4 {
+                padding-left: 16px !important;
+                padding-right: 16px !important
+            }
+            .sm-px-6 {
+                padding-left: 24px !important;
+                padding-right: 24px !important
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; width: 100%; background-color: #f3f4f6; padding: 0; -webkit-font-smoothing: antialiased; word-break: break-word">
+<div role="article" aria-roledescription="email" aria-label lang="en">
+    <div class="sm-px-4" style="background-color: #f3f4f6; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif">
+        <table align="center" style="margin: 0 auto" cellpadding="0" cellspacing="0" role="none">
+            <tr>
+                <td style="width: 552px; max-width: 100%">
+                    <div role="separator" style="line-height: 24px">&zwj;</div>
+                    <table style="width: 100%" cellpadding="0" cellspacing="0" role="none">
+                        <tr>
+                            <td class="sm-p-6" style="border-radius: 12px; border-width: 1px; border-color: #e5e7eb; background-color: #fffffe; padding: 32px 40px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)">
+                                <div style="text-align: center">
+                                    <a href="#">
+                                        <img src="https://khoi-dev-ktpm.s3.ap-southeast-1.amazonaws.com/logo.png" width="80" alt="LMS Logo" style="max-width: 100%; vertical-align: middle">
+                                    </a>
+                                </div>
+                                <div role="separator" style="line-height: 24px">&zwj;</div>
+                                <h1 style="margin: 0 0 24px; text-align: center; font-size: 30px; font-weight: 700; color: #111827">
+                                    <span th:text="#{account.lock.title}"></span>
+                                </h1>
+                                <p style="margin: 0 0 24px; text-align: center; font-size: 18px; color: #4b5563">
+                                    <span th:text="#{account.lock.greeting}"></span> <span th:text="${name}" style="font-weight: 700; color: #1f2937"></span>!
+                                    <br><span th:text="#{account.lock.message}"></span>
+                                </p>
+                                <div style="border-radius: 8px; background-color: #f9fafb; padding: 20px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05)">
+                                    <p th:text="#{account.lock.reason}" style="font-size: 18px; font-weight: 600; color: #111827"></p>
+                                    <p th:text="${lockReason}" style="color: #374151"></p>
+                                    <p th:text="#{account.lock.evidence}" style="font-size: 18px; font-weight: 600; color: #111827"></p>
+                                    <img th:if="${evidenceUrl}" th:src="${evidenceUrl}" alt="Evidence" style="max-width: 100%; vertical-align: middle; margin-top: 12px; width: 100%; border-radius: 8px">
+                                </div>
+                                <div role="separator" style="line-height: 24px">&zwj;</div>
+                                <div style="text-align: center">
+                                    <a href="#" class="hover-bg-red-700" th:text="#{account.lock.appeal}" style="display: inline-block; border-radius: 8px; background-color: #dc2626; padding: 12px 24px; font-size: 18px; font-weight: 700; color: #fffffe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)"></a>
+                                </div>
+                                <div role="separator" style="line-height: 24px">&zwj;</div>
+                                <p th:text="#{account.lock.footer}" style="margin: 0; text-align: center; font-size: 16px; color: #4b5563"></p>
+                                <div role="separator" style="height: 1px; line-height: 1px; background-color: #cbd5e1; margin-top: 24px; margin-bottom: 24px">&zwj;</div>
+                                <p th:text="#{account.lock.support}" style="margin: 0; text-align: center; font-size: 12px; color: #6b7280"></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <table style="width: 100%" cellpadding="0" cellspacing="0" role="none">
+                        <tr>
+                            <td class="sm-px-6" style="padding: 24px 36px; text-align: center">
+                                <p th:text="#{account.lock.copyright}" style="margin: 0; font-size: 12px; color: #6b7280"></p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+</body>
+</html>
