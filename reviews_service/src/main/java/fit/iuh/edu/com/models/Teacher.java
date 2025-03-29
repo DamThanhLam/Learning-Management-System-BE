@@ -1,8 +1,9 @@
 package fit.iuh.edu.com.models;
 
+
+import fit.iuh.edu.com.converter.LocalDateConverter;
 import fit.iuh.edu.com.enums.AccountStatus;
 import fit.iuh.edu.com.enums.Gender;
-import fit.iuh.edu.com.converter.LocalDateConverter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,35 +15,33 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @DynamoDbBean
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class User {
+public class Teacher {
     private String id;
-    private String userName;
-    private String email;
-    private String phoneNumber;
-    private LocalDate birthday;
+    private String teacherName;
     private Gender gender;
-    private List<String> groups;
-    private List<String> reviewsId;
+    private LocalDate birthday;
+    private String email;
     private String description;
     private String urlImage;
     private String cvFile;
     private AccountStatus accountStatus;
-    private Map<String, String> contacts;
+    private String cognitoId;
+    private List<String> groups;
+    private List<String> reviewsId;
     @DynamoDbPartitionKey
     @DynamoDbAttribute("id")
     public String getId() {
         return id;
     }
+
     @DynamoDbConvertedBy(LocalDateConverter.class)
     public LocalDate getBirthday() {
         return birthday;
     }
-
 }

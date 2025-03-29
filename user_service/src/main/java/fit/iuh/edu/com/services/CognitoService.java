@@ -1,5 +1,6 @@
 package fit.iuh.edu.com.services;
 
+import fit.iuh.edu.com.enums.Gender;
 import fit.iuh.edu.com.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,8 +10,6 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Formattable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,7 @@ public class CognitoService {
                 user.setBirthday( LocalDate.parse(attribute.value(), DateTimeFormatter.ofPattern("yyyy-dd-MM")));
             }
             if ("gender".equals(attribute.name())) {
-                user.setGender(attribute.value());
+                user.setGender(Gender.valueOf(attribute.value()));
             }
         }
         user.setId(adminGetUserResponse.username());
