@@ -1,11 +1,16 @@
 package email_service_lms.config;
 
+import email_service_lms.messaging.AllowedClassesMessageConverter;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.support.converter.AllowedListDeserializingMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Arrays;
 
 @Configuration
 public class RabbitMQConfig {
@@ -43,6 +48,12 @@ public class RabbitMQConfig {
         return new DirectExchange(EXCHANGE);  // Tạo Exchange
     }
 
+    @Bean
+    public MessageConverter messageConverter() {
+        return new AllowedClassesMessageConverter(Arrays.asList("email_service_lms.model.EmailMessage"));
+    }
+
+
     // Bind Queue với Routing Key vào Exchange
     @Bean
     public Binding paymentSuccessBinding(Queue paymentSuccessQueue, DirectExchange emailExchange) {
@@ -56,7 +67,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding lockAccountQueueBinding(Queue paymentSuccessQueue, DirectExchange emailExchange) {
-        return BindingBuilder.bind(paymentSuccessQueue).to(emailExchange).with(PAYMENT_SUCCESS_ROUTING_KEY);
+        return BindingBuilder.bind(paymentSuccessQueue).to(emailExchange).with(LOCK_ACCOUNT_ROUTING_KEY);
     }
 }
 

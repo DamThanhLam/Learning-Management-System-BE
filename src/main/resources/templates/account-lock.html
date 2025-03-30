@@ -53,26 +53,26 @@
                             <td class="sm-p-6" style="border-radius: 12px; border-width: 1px; border-color: #e5e7eb; background-color: #fffffe; padding: 32px 40px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)">
                                 <div style="text-align: center">
                                     <a href="#">
-                                        <img src="https://khoi-dev-ktpm.s3.ap-southeast-1.amazonaws.com/logo.png" width="80" alt="LMS Logo" style="max-width: 100%; vertical-align: middle">
+                                        <img src="https://khoi-dev-ktpm.s3.ap-southeast-1.amazonaws.com/logo.png" width="80" alt="Logo" style="max-width: 100%; vertical-align: middle">
                                     </a>
                                 </div>
                                 <div role="separator" style="line-height: 24px">&zwj;</div>
                                 <h1 style="margin: 0 0 24px; text-align: center; font-size: 30px; font-weight: 700; color: #111827">
-                                    <span th:text="#{account.lock.title}"></span>
+                                    <span th:text="#{account.lock.title}">Tài Khoản Của Bạn Đã Bị Khóa</span>
                                 </h1>
                                 <p style="margin: 0 0 24px; text-align: center; font-size: 18px; color: #4b5563">
-                                    <span th:text="#{account.lock.greeting}"></span> <span th:text="${name}" style="font-weight: 700; color: #1f2937"></span>!
-                                    <br><span th:text="#{account.lock.message}"></span>
+                                    <span th:text="#{account.lock.greeting}">Chào</span> <span th:text="${name}" style="font-weight: 700; color: #1f2937"></span>!
+                                    <br><span th:text="#{account.lock.message}">Tài khoản của bạn đã bị khóa do vi phạm quy định. </span><span th:text="${email}" style="font-weight: 700; color: #1f2937"></span>
                                 </p>
                                 <div style="border-radius: 8px; background-color: #f9fafb; padding: 20px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05)">
-                                    <p th:text="#{account.lock.reason}" style="font-size: 18px; font-weight: 600; color: #111827"></p>
+                                    <p th:text="#{account.lock.reason}" style="font-size: 18px; font-weight: 600; color: #111827">Lý Do Khóa Tài Khoản:</p>
                                     <p th:text="${lockReason}" style="color: #374151"></p>
-                                    <p th:text="#{account.lock.evidence}" style="font-size: 18px; font-weight: 600; color: #111827"></p>
+                                    <p th:text="#{account.lock.evidence}" style="font-size: 18px; font-weight: 600; color: #111827">Bằng Chứng:</p>
                                     <img th:if="${evidenceUrl}" th:src="${evidenceUrl}" alt="Evidence" style="max-width: 100%; vertical-align: middle; margin-top: 12px; width: 100%; border-radius: 8px">
                                 </div>
                                 <div role="separator" style="line-height: 24px">&zwj;</div>
                                 <div style="text-align: center">
-                                    <a href="#" class="hover-bg-red-700" th:text="#{account.lock.appeal}" style="display: inline-block; border-radius: 8px; background-color: #dc2626; padding: 12px 24px; font-size: 18px; font-weight: 700; color: #fffffe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)"></a>
+                                    <a href="#" class="hover-bg-red-700" th:text="#{account.lock.appeal}" style="display: inline-block; border-radius: 8px; background-color: #dc2626; padding: 12px 24px; font-size: 18px; font-weight: 700; color: #fffffe; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)">Kháng Nghị</a>
                                 </div>
                                 <div role="separator" style="line-height: 24px">&zwj;</div>
                                 <p th:text="#{account.lock.footer}" style="margin: 0; text-align: center; font-size: 16px; color: #4b5563"></p>
