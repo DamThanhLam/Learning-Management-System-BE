@@ -1,42 +1,62 @@
 package email_service_lms.config;
 
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String EMAIL_QUEUE = "email_queue";
+    // Tên Exchange
+    public static final String EXCHANGE = "email_exchange";
+
+    // Queue cho email thanh toán thành công
+    public static final String PAYMENT_SUCCESS_QUEUE = "payment_success_queue";
+    public static final String ACCOUNT_REQUEST_QUEUE = "account_request_queue";
+    public static final String LOCK_ACCOUNT_QUEUE = "lock_account_queue";
+
+    // Routing Key cho email thanh toán thành côngnt_success_email";
+    public static final String PAYMENT_SUCCESS_ROUTING_KEY = "payment_request_email";
+    public static final String ACCOUNT_REQUEST_ROUTING_KEY = "account_request_email";
+    public static final String LOCK_ACCOUNT_ROUTING_KEY = "lock_account_email";
 
     @Bean
-    public Queue emailQueue() {
-        return new Queue(EMAIL_QUEUE);
+    public Queue paymentSuccessQueue() {
+        return new Queue(PAYMENT_SUCCESS_QUEUE);
     }
 
     @Bean
-    public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public Queue accountRequestQueue() {
+        return new Queue(ACCOUNT_REQUEST_QUEUE);
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(jsonMessageConverter());
-        return rabbitTemplate;
+    public Queue lockAccountQueue() {
+        return new Queue(LOCK_ACCOUNT_QUEUE);
     }
 
     @Bean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(jsonMessageConverter());
-        return factory;
+    public DirectExchange emailExchange() {
+        return new DirectExchange(EXCHANGE);  // Tạo Exchange
+    }
+
+    // Bind Queue với Routing Key vào Exchange
+    @Bean
+    public Binding paymentSuccessBinding(Queue paymentSuccessQueue, DirectExchange emailExchange) {
+        return BindingBuilder.bind(paymentSuccessQueue).to(emailExchange).with(PAYMENT_SUCCESS_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding accountRequestQueueBinding(Queue accountRequestQueue, DirectExchange emailExchange) {
+        return BindingBuilder.bind(accountRequestQueue).to(emailExchange).with(ACCOUNT_REQUEST_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding lockAccountQueueBinding(Queue paymentSuccessQueue, DirectExchange emailExchange) {
+        return BindingBuilder.bind(paymentSuccessQueue).to(emailExchange).with(PAYMENT_SUCCESS_ROUTING_KEY);
     }
 }
 

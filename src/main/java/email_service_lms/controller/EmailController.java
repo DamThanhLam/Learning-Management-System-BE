@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Locale;
@@ -29,69 +30,42 @@ public class EmailController {
     private RabbitTemplate rabbitTemplate;
 
     // them thong tin cua order vao day
-    @PostMapping("/payment-success")
-    public ResponseEntity<String> sendAccountRequest(@RequestParam String email, @RequestParam String name) {
-        Locale locale = LocaleContextHolder.getLocale(); // Lấy ngôn ngữ hiện tại
+    @PostMapping("/payment")
+    public ResponseEntity<String> sendAccountRequest(
+            @RequestParam String email,
+            @RequestParam String name,
+            @RequestParam String orderId) {
 
-        // Lấy tiêu đề email từ messages.properties
+        // Xu li thanh toan
+
+
+        // gui email
+
+        Locale locale = LocaleContextHolder.getLocale();
         String subject = messageSource.getMessage("email.preheader", null, locale);
 
         Map<String, Object> templateData = new HashMap<>();
         templateData.put("name", name);
-        templateData.put("date", LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))); // Format theo chuẩn tiếng Anh
+        templateData.put("date", LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy")));
+        templateData.put("orderDetails", " ");
+
+        // Tạo đối tượng EmailMessage
         EmailMessage emailMessage = new EmailMessage(
                 email,
-                subject, // Dùng tiêu đề lấy từ messages.properties
+                subject,
                 "payment-success",
                 templateData
         );
 
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_QUEUE, emailMessage);
-        return ResponseEntity.ok("The email request for account creation has been added to the queue.");
+        // Gửi thông điệp vào RabbitMQ Exchange với Routing Key 'payment_success_email'
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.PAYMENT_SUCCESS_ROUTING_KEY, emailMessage);
+        return ResponseEntity.ok(String.format(
+                "Email request has been successfully added to the queue for user '%s'. " +
+                        "The email will be sent from the system to '%s' with subject '%s'. " +
+                        "The request has been added to the '%s' queue at %s.",
+                name, email, subject, RabbitMQConfig.PAYMENT_SUCCESS_QUEUE, LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        ));
     }
 
-    // 2. Endpoint gửi email chấp nhận/từ chối tạo tài khoản giáo viên
-    @PostMapping("/account-request")
-    public ResponseEntity<String> sendAccountRequest(@RequestParam String email, @RequestParam String name, @RequestParam boolean approved) {
-        Locale locale = LocaleContextHolder.getLocale(); // Lấy ngôn ngữ hiện tại
 
-        // Lấy tiêu đề email từ messages.properties
-        String subject = messageSource.getMessage("email.preheader", null, locale);
-
-        Map<String, Object> templateData = new HashMap<>();
-        templateData.put("name", name);
-        templateData.put("approved", approved);
-        templateData.put("date", LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))); // Format theo chuẩn tiếng Anh
-        EmailMessage emailMessage = new EmailMessage(
-                email,
-                subject, // Dùng tiêu đề lấy từ messages.properties
-                "account-request",
-                templateData
-        );
-
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_QUEUE, emailMessage);
-        return ResponseEntity.ok("The email request for account creation has been added to the queue.");
-    }
-
-    // 3. Endpoint gửi email thông báo lý do khóa tài khoản
-    @PostMapping("/lock-account")
-    public ResponseEntity<String> sendLockAccountRequest(@RequestParam String email, @RequestParam String name) {
-        Locale locale = LocaleContextHolder.getLocale(); // Lấy ngôn ngữ hiện tại
-
-        // Lấy tiêu đề email từ messages.properties
-        String subject = messageSource.getMessage("email.preheader", null, locale);
-
-        Map<String, Object> templateData = new HashMap<>();
-        templateData.put("name", name);
-        templateData.put("date", LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))); // Format theo chuẩn tiếng Anh
-        EmailMessage emailMessage = new EmailMessage(
-                email,
-                subject, // Dùng tiêu đề lấy từ messages.properties
-                "account-lock",
-                templateData
-        );
-
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_QUEUE, emailMessage);
-        return ResponseEntity.ok("The email request for account creation has been added to the queue.");
-    }
 }
