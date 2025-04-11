@@ -10,5 +10,6 @@ public interface AccountServiceBL {
     public boolean beforeRegister(String email);
 
     String login(String email, String string);
+    Account getAccount(String email);
 }
 

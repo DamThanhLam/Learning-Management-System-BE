@@ -33,6 +33,7 @@ public class Course {
     private int countOrders;
     private int countReviews;
     private int countLectures;
+    private String urlIntro;
     @DynamoDbPartitionKey
     @DynamoDbAttribute("id")
     public String getId() {

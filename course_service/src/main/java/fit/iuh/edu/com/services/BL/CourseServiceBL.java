@@ -21,4 +21,6 @@ public interface CourseServiceBL {
     Course updateCourse(Course course);
 
     List<Course> getCoursesByCourseNameOrCategory(String courseName, String category, int pageSize, Map<String, AttributeValue> lastEvaluatedKey);
+
+
 }

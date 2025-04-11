@@ -3,14 +3,20 @@ package fit.iuh.edu.com.repositories;
 import fit.iuh.edu.com.models.Account;
 import fit.iuh.edu.com.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Repository;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.*;
+import software.amazon.awssdk.enhanced.dynamodb.internal.AttributeValues;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class UserRepository {
@@ -51,5 +57,30 @@ public class UserRepository {
                 .stream()
                 .findFirst()
                 .orElse(null);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<User> findByRole(String role) {
+        Map<String, AttributeValue> item = new HashMap<>();
+        item.put(":role", AttributeValue.builder().s(role).build());
+
+        Expression expression = Expression.builder()
+                .expressionValues(item)
+                .expression("contains(groups, :role)").build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression).build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+
+    public User findByEmail(String email) {
+        Map<String, AttributeValue> item = new HashMap<>();
+        item.put(":email", AttributeValue.builder().s(email).build());
+
+        Expression expression = Expression.builder()
+                .expressionValues(item)
+                .expression("email= :email").build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression).build();
+        return dynamoDbTable.scan(request).items().stream().findFirst().orElse(null);
     }
 }

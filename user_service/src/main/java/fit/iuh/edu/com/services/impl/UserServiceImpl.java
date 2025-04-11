@@ -6,8 +6,11 @@ import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.repositories.UserRepository;
 import fit.iuh.edu.com.services.bl.UserServiceBL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserServiceBL {
@@ -28,20 +31,27 @@ public class UserServiceImpl implements UserServiceBL {
 
     @Override
     public UserOwnResponse getUser() {
-        String id = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.find(id);
-        return UserOwnResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .birthday(user.getBirthday())
-                .contacts(user.getContacts())
-                .cvFile(user.getCvFile())
-                .phoneNumber(user.getPhoneNumber())
-                .gender(user.getGender())
-                .urlImage(user.getUrlImage())
-                .description(user.getDescription())
-                .userName(user.getUserName())
-                .build();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            User userDetail = userRepository.find(user.getId());
+            return UserOwnResponse.builder()
+                    .id(userDetail.getId())
+                    .email(userDetail.getEmail())
+                    .birthday(userDetail.getBirthday())
+                    .contacts(userDetail.getContacts())
+                    .cvFile(userDetail.getCvFile())
+                    .phoneNumber(userDetail.getPhoneNumber())
+                    .gender(userDetail.getGender())
+                    .urlImage(userDetail.getUrlImage())
+                    .description(userDetail.getDescription())
+                    .userName(userDetail.getUserName())
+                    .build();
+        }
+        System.out.println("authentication null");
+
+        return null;
+
     }
 
     @Override
@@ -58,5 +68,20 @@ public class UserServiceImpl implements UserServiceBL {
                 .description(user.getDescription())
                 .id(user.getId())
                 .build();
+    }
+
+    @Override
+    public User getById(String id) {
+        return userRepository.find(id);
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    @Override
+    public List<User> getUserByRole(String role) {
+        return userRepository.findByRole(role);
     }
 }

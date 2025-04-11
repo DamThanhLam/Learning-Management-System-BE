@@ -45,18 +45,36 @@ public class JwtTokenUtil {
         }
         return token;
     }
+    public String generateRefreshToken(JwtEncoder jwtEncoder, User user) {
+        String refreshToken = "";
+        try {
+            Instant now = Instant.now();
+            JwtClaimsSet claims = JwtClaimsSet.builder()
+                    .issuer("iuh.fit.se")
+                    .issuedAt(now)
+                    .expiresAt(now.plus(7, ChronoUnit.DAYS)) // Refresh token có thời gian sống lâu hơn
+                    .subject(user.getId())
+                    .build();
+
+            refreshToken = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        } catch (Exception e) {
+            logger.error("Error generating refresh token: " + e.getMessage());
+        }
+        return refreshToken;
+    }
     public String getUsernameFromToken(Jwt jwtToken) {
         return jwtToken.getSubject();
     }
     private boolean isTokenExpired(Jwt jwtToken) {
         return Objects.requireNonNull(jwtToken.getExpiresAt()).isBefore(Instant.now());
     }
-    public boolean isTokenValid(Jwt jwtToken, UserPrincipal userPrincipal) {
+    public boolean isTokenValid(Jwt jwtToken, User user) {
+
         return !isTokenExpired(jwtToken) &&
-                userPrincipal.isEnabled() &&
-                userPrincipal.getUsername().equals(getUsernameFromToken(jwtToken));
+                user != null &&
+                user.getId().equals(getUsernameFromToken(jwtToken));
     }
     public Instant generateExpirationDate() {
-        return Instant.now().plus(10, ChronoUnit.MINUTES);
+        return Instant.now().plus(100, ChronoUnit.MINUTES);
     }
 }

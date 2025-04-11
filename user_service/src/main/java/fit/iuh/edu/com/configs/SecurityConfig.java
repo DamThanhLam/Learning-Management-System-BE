@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -45,7 +46,8 @@ public class SecurityConfig {
 
     @Autowired
     private RSAKeyRecord rsaKeyRecord;
-
+    @Autowired
+    private CookieBearerTokenResolver cookieBearerTokenResolver;
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -53,27 +55,35 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
+//        http.requiresChannel(channelRequestMatcherRegistry ->
+//                channelRequestMatcherRegistry.anyRequest().requiresSecure());
         http
                 .cors(httpSecurityCorsConfigurer -> httpSecurityCorsConfigurer.configure(http))
                 .csrf(AbstractHttpConfigurer::disable)
+
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .bearerTokenResolver(cookieBearerTokenResolver)
+                )
+                .sessionManagement(
+                        httpSecuritySessionManagementConfigurer ->
+                                httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/user/student/register").permitAll()
                         .requestMatchers("/api/v1/user/login").permitAll()
+                        .requestMatchers("/api/v1/user/refresh").permitAll()
+
                         .anyRequest()
-                        .authenticated())
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults()))
-                .sessionManagement(
-                        httpSecuritySessionManagementConfigurer ->
-                                httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2ResourceServer(httpSecurityOAuth2ResourceServerConfigurer ->
-                        httpSecurityOAuth2ResourceServerConfigurer.jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                );
+                        .authenticated());
 
         return http.build();
     }
-
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/api/v1/user/login", "/api/v1/user/student/register", "/api/v1/user/refresh");
+    }
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
@@ -82,8 +92,8 @@ public class SecurityConfig {
                 registry.addMapping("/**")
                         .allowedOrigins("http://localhost:3000") // Cho phép React truy cập API
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowCredentials(true)
+                        .allowedHeaders("*");
             }
         };
     }
@@ -103,7 +113,7 @@ public class SecurityConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
 
         JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("cognito:groups");
+        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("scope");
         jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
 
         converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
@@ -114,7 +124,7 @@ public class SecurityConfig {
     public Cipher cipherDecrypt() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
 
         // Đọc tệp từ classpath
-        ClassPathResource resource = new ClassPathResource("private_key.pem");
+        ClassPathResource resource = new ClassPathResource("certs/private_key.pem");
         InputStream inputStream = resource.getInputStream();
         byte[] keyBytes = inputStream.readAllBytes();
 
@@ -123,7 +133,6 @@ public class SecurityConfig {
         key = key.replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replaceAll("\\s", "");
-        System.out.println("key:" + key);
         byte[] decodedKey = Base64.getDecoder().decode(key);
 
         // Giải mã khóa private từ định dạng PKCS#8

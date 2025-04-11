@@ -64,7 +64,7 @@ public class CourseServiceImpl implements CourseServiceBL {
     @Override
     public boolean checkCourseBeforeUpdate(String courseId) {
         Course course = courseRepository.courseExist(courseId);
-        return course != null && course.getStatus().equals(CourseStatus.DRAFT);
+        return course != null;
     }
 
     @Override

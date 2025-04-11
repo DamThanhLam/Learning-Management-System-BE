@@ -28,11 +28,15 @@ public class CourseRequestUpdate{
     @Min(value = 0, message = "price must be greater than 0")
     private float price;
     private MultipartFile fileAvt;
+    private MultipartFile videoIntro;
+    @Length(min = 2,message = "category must be longer than 2")
     private String category;
+//    @Length(min = 2,message = "status must be longer than 2")
     private CourseStatus status;
+//    @Length(min = 2,message = "level must be longer than 2")
     private CourseLevel level;
 
-    public Course toCourse(String urlAvt,Course course) {
+    public Course toCourse(String urlAvt, String urlIntro,Course course) {
         if(courseName != null){
             course.setCourseName(courseName);
         }
@@ -51,31 +55,13 @@ public class CourseRequestUpdate{
         if(level != null){
             course.setLevel(level);
         }
-        if(urlAvt != null){
+        if(urlAvt != null && !urlAvt.isEmpty()){
             course.setUrlAvt(urlAvt);
         }
+        if(urlIntro != null && !urlIntro.isEmpty()){
+            course.setUrlIntro(urlIntro);
+        }
         return course;
     }
-    public Course toCourse(Course course) {
-        if(courseName != null){
-            course.setCourseName(courseName);
-        }
-        if(description != null){
-            course.setDescription(description);
-        }
-        if(price != 0){
-            course.setPrice(price);
-        }
-        if(category != null){
-            course.setCategory(category);
-        }
-        if(status != null) {
-            course.setStatus(status);
-        }
-        if(level != null){
-            course.setLevel(level);
-        }
 
-        return course;
-    }
 }

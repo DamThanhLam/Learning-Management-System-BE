@@ -2,6 +2,7 @@ package fit.iuh.edu.com.services.Impl;
 
 import fit.iuh.edu.com.services.BL.BucketServiceBL;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -53,6 +54,8 @@ public class BucketServiceImpl implements BucketServiceBL {
     public List<Bucket> getAllBuckets() throws ExecutionException, InterruptedException {
         return s3AsyncClient().listBuckets().get().buckets();
     }
+
+
 
 
     public String putObjectToBucket(String bucketName, MultipartFile multipartFile, String ...path ) throws IOException {

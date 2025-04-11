@@ -41,4 +41,17 @@ public class AccountRepository {
         return dynamoDbTable.scan(request).items().stream().findFirst().orElse(null);
     }
 
+    public Account getByEmail(String email) {
+        Map<String, AttributeValue> key = new HashMap<String, AttributeValue>();
+        key.put(":email", AttributeValue.builder().s(email).build());
+
+        Expression expression = Expression.builder()
+                .expression("email = :email")
+                .expressionValues(key)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().findFirst().orElse(null);
+    }
 }

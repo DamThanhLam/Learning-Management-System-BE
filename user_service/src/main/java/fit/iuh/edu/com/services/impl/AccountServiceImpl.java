@@ -19,14 +19,14 @@ public class AccountServiceImpl implements AccountServiceBL {
     private AccountRepository accountRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    @Autowired
+    private JwtEncoder jwtEncoder;
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
     @Autowired
     private SecurityUtils securityUtils;
 
-    @Autowired
-    private JwtEncoder jwtEncoder;
+
 
     @Autowired
     private UserRepository userRepository;
@@ -45,13 +45,24 @@ public class AccountServiceImpl implements AccountServiceBL {
     @Override
     public String login(String email, String password) {
         Account account = accountRepository.accountExists(email);
+        System.out.println("account"+account);
+        System.out.println("email"+email);
         if (account == null) return null;
         if(passwordEncoder.matches(password,account.getPassword())){
             User user = userRepository.find(account.getId());
             SecurityUtils.setUserAuthentication(user);
+
+
+            System.out.println("user"+user);
+
             return jwtTokenUtil.generateToken(jwtEncoder,user);
         }
         return null;
+    }
+
+    @Override
+    public Account getAccount(String email) {
+        return accountRepository.getByEmail(email);
     }
 
 

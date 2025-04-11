@@ -21,7 +21,7 @@ public class Review {
     private String content;
     private int review;
 
-    @x
+    @DynamoDbPartitionKey
     public String getId() {
         return id;
     }

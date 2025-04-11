@@ -41,6 +41,11 @@ public class ReviewServiceImpl implements ReviewServiceBL {
     }
 
     @Override
+    public List<Review> getReviewsByCourseId(String courseId, int review) {
+        return reviewRepository.getReviewsByCourseId(courseId, review);
+    }
+
+    @Override
     public List<Review> getReviewsByCourseId(String courseId) {
         return reviewRepository.getReviewsByCourseId(courseId);
     }

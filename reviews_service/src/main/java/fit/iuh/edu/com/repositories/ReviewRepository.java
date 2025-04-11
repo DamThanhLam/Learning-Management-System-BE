@@ -11,6 +11,8 @@ import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class ReviewRepository{
     }
     public Review addReview(Review review){
         review.setId(java.util.UUID.randomUUID().toString());
+        review.setCreatedAt(Instant.now());
         dynamoDbTable.putItem(review);
         return review;
     }
@@ -36,6 +39,22 @@ public class ReviewRepository{
         Expression expression = Expression
                 .builder()
                 .expression("courseId = :courseId")
+                .expressionValues(expressValue)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest
+                .builder()
+                .filterExpression(expression)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Review> getReviewsByCourseId(String courseId, int review) {
+        Map<String, AttributeValue> expressValue = new HashMap<String, AttributeValue>();
+        expressValue.put(":courseId", AttributeValue.builder().s(courseId).build());
+        expressValue.put(":review", AttributeValue.builder().n(String.valueOf(review)).build());
+
+        Expression expression = Expression
+                .builder()
+                .expression("courseId = :courseId AND review = :review")
                 .expressionValues(expressValue)
                 .build();
         ScanEnhancedRequest request = ScanEnhancedRequest

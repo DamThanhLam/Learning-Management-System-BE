@@ -4,9 +4,13 @@ import fit.iuh.edu.com.dtos.DecisionMakingTeacherAdd;
 import fit.iuh.edu.com.dtos.TeacherAddRequest;
 import fit.iuh.edu.com.enums.AccountStatus;
 import fit.iuh.edu.com.enums.DecisionMaking;
+import fit.iuh.edu.com.export.ExcelExporter;
+import fit.iuh.edu.com.models.EmailMessage;
+import fit.iuh.edu.com.models.Feedback;
 import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.services.BL.BucketServiceBL;
 import fit.iuh.edu.com.services.BL.CognitoServiceBL;
+import fit.iuh.edu.com.services.BL.FeedbackServiceBL;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -40,6 +45,8 @@ public class TeacherManagementController {
     private UserServiceBL userServiceBL;
     @Autowired
     private CognitoServiceBL cognitoServiceBL;
+    @Autowired
+    private FeedbackServiceBL feedbackServiceBL;
 
     @Value("${aws.s3.bucket.name}")
     private String bucketName;
@@ -106,6 +113,15 @@ public class TeacherManagementController {
             return ResponseEntity.badRequest().body(response);
         }
 
+
+//        List<Feedback> feedbacks = feedbackServiceBL.getFeedbacksByTeacherId(teacherId);
+//        String path = UUID.randomUUID()+".xlsx";
+//        byte[] bytes = ExcelExporter.exportAndReadExcel(feedbacks, Path.of(path));
+//        EmailMessage emailMessage = EmailMessage.builder()
+//                .to(teacher.getEmail())
+//                .subject("Lock your account")
+//                .templateData()
+//                .build();
         return null;
     }
     @PreAuthorize("hasRole('ADMIN')")

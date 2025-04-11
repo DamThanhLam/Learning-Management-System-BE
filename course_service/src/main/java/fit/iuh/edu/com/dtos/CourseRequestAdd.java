@@ -3,16 +3,12 @@ package fit.iuh.edu.com.dtos;
 import fit.iuh.edu.com.enums.CourseLevel;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
-import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.Length;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -33,6 +29,8 @@ public class CourseRequestAdd {
     private float price;
     @NotNull(message = "File Avatar must not be null")
     private MultipartFile fileAvt;
+    @NotNull(message = "Video Intro must not be null")
+    private MultipartFile videoIntro;
     @NotNull(message = "Category must not be null")
     private String category;
     @NotNull(message = "Status must not be null")
@@ -40,7 +38,7 @@ public class CourseRequestAdd {
     @NotNull(message = "Level must not be null")
     private CourseLevel level;
 
-    public Course covertCourseRequestAddToCourse(String urlAvt, String userName, String userId) {
+    public Course covertCourseRequestAddToCourse(String urlAvt, String userName, String userId, String urlIntro) {
         Course course = new Course();
         course.setCourseName(courseName);
         course.setDescription(description);
@@ -51,6 +49,7 @@ public class CourseRequestAdd {
         course.setUrlAvt(urlAvt);
         course.setTeacherName(userName);
         course.setTeacherId(userId);
+        course.setUrlIntro(urlIntro);
         return course;
     }
 }
