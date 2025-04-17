@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'fit.iuh.edu.com'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("com.google.guava:guava:33.3.0-jre")
+
+    implementation(platform("software.amazon.awssdk:bom:2.27.21"))
+//    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:sso")
+    implementation("software.amazon.awssdk:ssooidc")
+    implementation("software.amazon.awssdk:dynamodb")
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'org.bytedeco:javacv-platform:1.5.9'
+    implementation 'software.amazon.awssdk:dynamodb-enhanced'
+    implementation 'org.springframework.boot:spring-boot-starter-validation:3.3.3'
+
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-authorization-server'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

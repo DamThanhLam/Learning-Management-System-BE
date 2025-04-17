@@ -31,12 +31,12 @@ public class Review {
 
 
     @DynamoDbPartitionKey
-    public String getId() {
+    public String getCourseId() {
         return id;
     }
 
     @DynamoDbSortKey
-    public String getCourseId() {
-        return courseId;
+    public Instant getCreateAt() {
+        return createdAt;
     }
 }
