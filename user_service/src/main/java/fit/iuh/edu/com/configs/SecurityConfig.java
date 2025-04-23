@@ -82,7 +82,8 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers("/api/v1/user/login", "/api/v1/user/student/register", "/api/v1/user/refresh");
+                .requestMatchers("/api/v1/user/login", "/api/v1/user/student/register", "/api/v1/user/refresh")
+                .requestMatchers(HttpMethod.GET, "/api/v1/user");
     }
     @Bean
     public WebMvcConfigurer corsConfigurer() {
@@ -90,7 +91,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000") // Cho phép React truy cập API
+                        .allowedOriginPatterns("http://localhost:3000")// Cho phép React truy cập API
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowCredentials(true)
                         .allowedHeaders("*");

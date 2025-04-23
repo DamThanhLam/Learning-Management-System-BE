@@ -4,18 +4,15 @@ import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.Review;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.*;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
-import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.*;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.time.Instant;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 public class ReviewRepository{
@@ -47,6 +44,29 @@ public class ReviewRepository{
                 .build();
         return dynamoDbTable.scan(request).items().stream().toList();
     }
+    public List<Review> getReviewsBeforeNow(String courseId) {
+        DynamoDbIndex<Review> gsi = dynamoDbTable.index("courseId-createdAt-index");
+        Instant now = Instant.now();
+        QueryConditional cond = QueryConditional.sortLessThan(
+                Key.builder()
+                        .partitionValue(courseId)
+                        .sortValue(now.toString())
+                        .build()
+        );
+        QueryEnhancedRequest request = QueryEnhancedRequest.builder()
+                .queryConditional(cond)
+                .scanIndexForward(false)
+                .build();
+
+        SdkIterable<Page<Review>> pages = gsi.query(request);
+        List<Review> result = new ArrayList<>();
+        for (Page<Review> page : pages) {
+            result.addAll(page.items());
+        }
+        return result;
+    }
+
+
     public List<Review> getReviewsByCourseId(String courseId, int review) {
         Map<String, AttributeValue> expressValue = new HashMap<String, AttributeValue>();
         expressValue.put(":courseId", AttributeValue.builder().s(courseId).build());

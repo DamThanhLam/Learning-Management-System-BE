@@ -76,7 +76,7 @@ public class ReviewController {
         if(review != null && review > 0 && review <= 5) {
             reviews = reviewServiceBL.getReviewsByCourseId(courseId, review);
         }else{
-            reviews = reviewServiceBL.getReviewsByCourseId(courseId);
+            reviews = reviewServiceBL.getReviewsBeforeNow(courseId);
         }
         Map<String, Object> response = new HashMap<>();
         response.put("code",200);

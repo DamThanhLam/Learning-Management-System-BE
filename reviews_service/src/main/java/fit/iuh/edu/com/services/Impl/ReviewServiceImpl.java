@@ -37,6 +37,9 @@ public class ReviewServiceImpl implements ReviewServiceBL {
 
     @Override
     public Review add(Review review) {
+        Course course = courseRepository.courseExist(review.getCourseId());
+        course.setCountReviews(course.getCountReviews() + 1);
+        courseRepository.updateCourse(course);
         return reviewRepository.addReview(review);
     }
 
@@ -79,5 +82,10 @@ public class ReviewServiceImpl implements ReviewServiceBL {
         reviewsId.add(review.getId());
         user.setReviewsId(reviewsId);
         userRepository.updateUser(user);
+    }
+
+    @Override
+    public List<Review> getReviewsBeforeNow(String courseId) {
+        return reviewRepository.getReviewsBeforeNow(courseId);
     }
 }

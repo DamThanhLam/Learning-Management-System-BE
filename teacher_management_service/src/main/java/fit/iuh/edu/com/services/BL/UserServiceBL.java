@@ -1,7 +1,10 @@
 package fit.iuh.edu.com.services.BL;
 
 import fit.iuh.edu.com.models.User;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public interface UserServiceBL {
@@ -17,4 +20,6 @@ public interface UserServiceBL {
     void delete(User teacherTemp);
 
     void update(User teacher);
+
+    Page<User> getAllAccountByStatusAndRole(String status, String role, int page, int pageSize);
 }

@@ -78,6 +78,25 @@ public class CourseServiceImpl implements CourseServiceBL {
         return mappingCoursesFromScanResponse(scanResponse);
     }
 
+    @Override
+    public List<Course> getCoursesCommon() {
+        List<Course> courses =  courseRepository.search(new String[]{"id", "totalReview", "countReviews"});
+        courses = courses.stream()
+                .sorted(Comparator.comparing(Course::getTotalReview).reversed())
+                .sorted(Comparator.comparing(Course::getCountReviews).reversed()).limit(20).toList();
+        return courses;
+    }
+
+    @Override
+    public List<Course> searchCourses(String courseName, String category, Integer rating, String sort, int offset, int size) {
+        // Viết truy vấn theo offset & limit
+        // Có thể dùng JPA hoặc DynamoDB tùy bạn
+        // sort = "asc" / "desc"
+        // rating có thể là filter số sao
+        return courseRepository.search(courseName, category, rating, sort, offset, size);
+    }
+
+
 
     //
 //    @Override
@@ -141,7 +160,7 @@ public class CourseServiceImpl implements CourseServiceBL {
             }
             if(item.containsKey("totalReview")){
                 try{
-                    course.setTotalReview(Float.parseFloat(item.get("totalReview").s()));
+                    course.setTotalReview(Float.parseFloat(item.get("totalReview").n()));
                 }catch (Exception e){
                     course.setTotalReview(0);
                 }
@@ -150,10 +169,10 @@ public class CourseServiceImpl implements CourseServiceBL {
                 course.setCountOrders(Integer.parseInt(item.get("countOrders").n()));
             }
             if(item.containsKey("countLectures")){
-                course.setCountOrders(Integer.parseInt(item.get("countLectures").n()));
+                course.setCountLectures(Integer.parseInt(item.get("countLectures").n()));
             }
             if(item.containsKey("countReviews")){
-                course.setCountOrders(Integer.parseInt(item.get("countReviews").n()));
+                course.setCountReviews(Integer.parseInt(item.get("countReviews").n()));
             }
 
             courses.add(course);

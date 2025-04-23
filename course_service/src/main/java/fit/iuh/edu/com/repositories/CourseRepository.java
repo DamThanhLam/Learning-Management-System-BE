@@ -5,18 +5,18 @@ import fit.iuh.edu.com.models.Course;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Repository;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.*;
 import software.amazon.awssdk.enhanced.dynamodb.internal.AttributeValues;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Repository
@@ -93,10 +93,8 @@ public class CourseRepository {
         return response;
     }
 
-    @PostAuthorize("returnObject.teacherId == authentication.name OR returnObject.studentsId.contains(authentication.name)")
+//    @PostAuthorize("returnObject.teacherId == authentication.name OR returnObject.studentsId.contains(authentication.name)")
     public Course getCourseDetailById(String courseId) {
-        DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDBClient).build();
-        DynamoDbTable<Course> dynamoDbTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
         return dynamoDbTable.getItem(Key.builder().partitionValue(courseId).build());
     }
 
@@ -174,7 +172,7 @@ public class CourseRepository {
                 .filterExpression(filterExpression+"#s = :s")
                 .expressionAttributeValues(expressionAttributeValues)
                 .expressionAttributeNames(expressionAttributeNames)
-                .projectionExpression("id, courseName, price, urlAvt, teacherName, category, #s, teacherId")
+                .projectionExpression("id, courseName, price, urlAvt, teacherName, category, #s, teacherId, totalReview, countReviews")
                 .limit(pageSize != 0 ?pageSize:10);
         if(lastEvaluatedKey!= null && !lastEvaluatedKey.isEmpty()){
             System.out.println("lastEvaluatedKey:"+lastEvaluatedKey);
@@ -183,4 +181,114 @@ public class CourseRepository {
         ScanRequest request = requestBuilder.build();
         return dynamoDBClient.scan(request);
     }
+
+    public List<Course> search(Map<String, AttributeValue> expressionAttributeValues, String expressionContent, Map<String, String> expressionAttributeNames,int limit, Map<String, AttributeValue> lastEvaluatedKey ) {
+        Expression expression = Expression.builder()
+                .expression(expressionContent)
+                .expressionValues(expressionAttributeValues)
+                .expressionNames(expressionAttributeNames)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .limit(limit)
+                .exclusiveStartKey(lastEvaluatedKey)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Course> search(Map<String, AttributeValue> expressionAttributeValues, String expressionContent, Map<String, String> expressionAttributeNames,int limit) {
+        Expression expression = Expression.builder()
+                .expression(expressionContent)
+                .expressionValues(expressionAttributeValues)
+                .expressionNames(expressionAttributeNames)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .limit(limit)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Course> search(Map<String, AttributeValue> expressionAttributeValues, String expressionContent, Map<String, String> expressionAttributeNames ) {
+        Expression expression = Expression.builder()
+                .expression(expressionContent)
+                .expressionValues(expressionAttributeValues)
+                .expressionNames(expressionAttributeNames)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Course> search(Map<String, AttributeValue> expressionAttributeValues, String expressionContent) {
+        Expression expression = Expression.builder()
+                .expression(expressionContent)
+                .expressionValues(expressionAttributeValues)
+                .build();
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Course> search( String[] attributesToProject) {
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .attributesToProject(attributesToProject)
+                .build();
+        return dynamoDbTable.scan(request).items().stream().toList();
+    }
+    public List<Course> search(String courseName, String category, Integer rating, String sort, int offset, int size) {
+        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
+        Map<String, String> expressionAttributeNames = new HashMap<>();
+        StringBuilder filterExpression = new StringBuilder();
+
+        if (courseName != null && !courseName.isEmpty()) {
+            expressionAttributeValues.put(":courseName", AttributeValues.stringValue(courseName));
+            filterExpression.append("contains(courseName, :courseName)");
+        }
+
+        if (category != null && !category.isEmpty()) {
+            expressionAttributeValues.put(":category", AttributeValues.stringValue(category));
+            if (filterExpression.length() > 0) filterExpression.append(" AND ");
+            filterExpression.append("contains(category, :category)");
+        }
+
+        if (rating != null) {
+            expressionAttributeValues.put(":rating", AttributeValues.numberValue(rating));
+            if (filterExpression.length() > 0) filterExpression.append(" AND ");
+            filterExpression.append("totalReview >= :rating");
+        }
+
+        expressionAttributeValues.put(":status", AttributeValues.stringValue("OPEN"));
+        expressionAttributeNames.put("#s", "status");
+        if (filterExpression.length() > 0) filterExpression.append(" AND ");
+        filterExpression.append("#s = :status");
+
+        Expression expression = Expression.builder()
+                .expression(filterExpression.toString())
+                .expressionValues(expressionAttributeValues)
+                .expressionNames(expressionAttributeNames)
+                .build();
+
+        ScanEnhancedRequest request = ScanEnhancedRequest.builder()
+                .filterExpression(expression)
+                .limit(offset + size) // Load thêm dữ liệu để có thể bỏ offset
+                .build();
+
+        List<Course> results = dynamoDbTable.scan(request)
+                .items()
+                .stream()
+                .skip(offset) // Bỏ qua các phần tử theo offset
+                .limit(size) // Giới hạn số lượng
+                .collect(java.util.stream.Collectors.toList());
+
+        // TODO: DynamoDB không hỗ trợ sort trong scan. Nếu cần sort chính xác thì phải sort sau khi lấy dữ liệu:
+        if (sort != null && !sort.isEmpty()) {
+            switch (sort.toLowerCase()) {
+                case "price" -> results.sort(Comparator.comparing(Course::getPrice));
+                case "rating" -> results.sort(Comparator.comparing(Course::getTotalReview).reversed());
+                case "name", "coursename" -> results.sort(Comparator.comparing(Course::getCourseName));
+            }
+        }
+
+        return results;
+    }
+
 }

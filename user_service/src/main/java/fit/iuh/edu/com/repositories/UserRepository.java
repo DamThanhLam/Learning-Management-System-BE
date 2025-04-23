@@ -83,4 +83,9 @@ public class UserRepository {
                 .filterExpression(expression).build();
         return dynamoDbTable.scan(request).items().stream().findFirst().orElse(null);
     }
+
+    public void update(User user) {
+        System.out.println(user.getUrlImage());
+        dynamoDbTable.putItem(user);
+    }
 }

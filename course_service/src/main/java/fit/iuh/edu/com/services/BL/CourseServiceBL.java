@@ -23,4 +23,7 @@ public interface CourseServiceBL {
     List<Course> getCoursesByCourseNameOrCategory(String courseName, String category, int pageSize, Map<String, AttributeValue> lastEvaluatedKey);
 
 
+    List<Course> getCoursesCommon();
+
+    List<Course> searchCourses(String courseName, String category, Integer rating, String sort, int offset, int size);
 }

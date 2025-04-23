@@ -8,11 +8,17 @@ import java.util.stream.Collectors;
 
 import fit.iuh.edu.com.lectureservice1.dto.LectureDTO;
 import fit.iuh.edu.com.lectureservice1.dto.PaginatedLecturesDTO;
+import fit.iuh.edu.com.lectureservice1.model.Course;
 import fit.iuh.edu.com.lectureservice1.model.Lecture;
+import fit.iuh.edu.com.lectureservice1.repository.CourseRepository;
 import fit.iuh.edu.com.lectureservice1.repository.LectureRepository;
 import fit.iuh.edu.com.lectureservice1.utils.FileValidationUtil;
 import fit.iuh.edu.com.lectureservice1.utils.VideoUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +31,7 @@ public class LectureService {
 	private static final long MAX_DOCUMENT_SIZE = 15 * 1024 * 1024; // 15MB
 	private static final long MAX_VIDEO_SIZE = 1024L * 1024 * 1024; // 1GB
 	private static final long MAX_THUMBNAIL_SIZE = 15 * 1024 * 1024; // 15MB
+	private final CourseRepository courseRepository;
 
 	@Value("${aws.s3.folder}")
 	private String folderRoot;
@@ -55,57 +62,59 @@ public class LectureService {
 	    "image/png"
 	);
 
-	public LectureService(LectureRepository lectureRepository, S3Service s3Service) {
+	public LectureService(LectureRepository lectureRepository, S3Service s3Service, CourseRepository courseRepository) {
 		this.lectureRepository = lectureRepository;
 		this.s3Service = s3Service;
+		this.courseRepository = courseRepository;
 	}
 
-	public List<Lecture> getByCourseId(String courseId) {
-		return lectureRepository.findByCourseId(courseId);
+//	public List<Lecture> getByCourseId(String courseId) {
+//		return lectureRepository.findByCourseId(courseId);
+//	}
+
+	public PaginatedLecturesDTO getByCourseId(String courseId,String status) {
+
+		return lectureRepository.findByCourseId(courseId, status);
 	}
 
-	public PaginatedLecturesDTO getByCourseId(String courseId, int limit, String lastEvaluatedId,
-											  String lastEvaluatedChapterOrderIndex) {
-		return lectureRepository.findByCourseId(courseId, limit, lastEvaluatedId, lastEvaluatedChapterOrderIndex);
-	}
 
-	public Lecture getById(String courseId, int chapter) {
-		return lectureRepository.findById(courseId, chapter);
+
+	public Lecture getById(String id) {
+		return lectureRepository.findById(id);
 	}
 
 	public Lecture createLecture(String courseId, LectureDTO dto, MultipartFile documentFile, MultipartFile videoFile,
 								 MultipartFile thumbnailFile) {
-
-		// Determine type based on provided files
+			// Determine type based on provided files
 		Lecture.ComputedType type;
 		if (videoFile != null && !videoFile.isEmpty() && documentFile != null && !documentFile.isEmpty()) {
-		    type = Lecture.ComputedType.MIXED;
+			type = Lecture.ComputedType.MIXED;
 		} else if (videoFile != null && !videoFile.isEmpty()) {
-		    type = Lecture.ComputedType.VIDEO;
+			type = Lecture.ComputedType.VIDEO;
 		} else if (documentFile != null && !documentFile.isEmpty()) {
-		    type = Lecture.ComputedType.DOCUMENT;
+			type = Lecture.ComputedType.DOCUMENT;
 		} else {
-		    type = Lecture.ComputedType.UNKNOWN;
+			type = Lecture.ComputedType.UNKNOWN;
 		}
 
 		// Validation before upload
 		FileValidationUtil.validateFile(documentFile, MAX_DOCUMENT_SIZE, ALLOWED_DOCUMENT_TYPES, "Document");
 		FileValidationUtil.validateFile(videoFile, MAX_VIDEO_SIZE, ALLOWED_VIDEO_TYPES, "Video");
 		FileValidationUtil.validateFile(thumbnailFile, MAX_THUMBNAIL_SIZE, ALLOWED_IMAGE_TYPES, "Thumbnail");
-		
+
 		// Upload files to S3
 		String documentUrl = (documentFile != null && !documentFile.isEmpty()) ? s3Service.uploadFile(documentFile,folderFiles)	: null;
 		String videoUrl = (videoFile != null && !videoFile.isEmpty()) ? s3Service.uploadFile(videoFile,folderVideos) : null;
 		String thumbnailUrl = (thumbnailFile != null && !thumbnailFile.isEmpty()) ? s3Service.uploadFile(thumbnailFile,folderImages) : null;
-		
+
 		// Extract video duration (in seconds) if video is provided
 		Integer duration = null;
 		if (videoFile != null && !videoFile.isEmpty()) {
-		    duration = VideoUtil.extractVideoDurationInSeconds(videoFile); // Get the video duration
+			duration = VideoUtil.extractVideoDurationInSeconds(videoFile); // Get the video duration
 		}
 
 		// Create and populate a lecture entity
-		Lecture lecture = dto.toEntity(); 
+		Lecture lecture = dto.toEntity();
 		lecture.setCourseId(courseId);
 		lecture.setType(type);
 		lecture.setDocumentUrl(documentUrl);
@@ -114,14 +123,19 @@ public class LectureService {
 		lecture.setDuration(duration);
 		lecture.setCreatedAt(Instant.now());
 		lecture.setUpdatedAt(Instant.now());
+		lecture.setId(UUID.randomUUID().toString());
 
+		Course course = courseRepository.getId(lecture.getCourseId());
+		course.setCountLectures(course.getCountLectures()+1);
+		courseRepository.update(course);
 		return lectureRepository.save(lecture);
+
 	}
 
-	public Lecture updateLecture(String courseId, LectureDTO dto, MultipartFile documentFile,
+	public Lecture updateLecture(String id, LectureDTO dto, MultipartFile documentFile,
 			MultipartFile videoFile, MultipartFile thumbnailFile) {
 
-		Lecture existingLecture = lectureRepository.findById(courseId,dto.getChapter());
+		Lecture existingLecture = lectureRepository.findById(id);
 		if (existingLecture == null) {
 			throw new RuntimeException("Lecture not found");
 		}
@@ -135,7 +149,7 @@ public class LectureService {
 		} else if (documentFile != null && !documentFile.isEmpty()) {
 		    type = Lecture.ComputedType.DOCUMENT;
 		} else {
-		    type = Lecture.ComputedType.UNKNOWN;
+		    type = existingLecture.getType();
 		}
 
 		// Extract video duration if a new video is provided
@@ -167,10 +181,19 @@ public class LectureService {
 		}
 
 		// Update basic fields
-		existingLecture.setTitle(dto.getTitle());
-		existingLecture.setChapter(Integer.valueOf(dto.getChapter()));
-		existingLecture.setDescription(dto.getDescription());
-		existingLecture.setStatus(dto.getStatusAsEnum());
+		if(!dto.getTitle().isEmpty()){
+			existingLecture.setTitle(dto.getTitle());
+		}
+		if(!dto.getDescription().isEmpty()){
+			existingLecture.setDescription(dto.getDescription());
+		}
+		try{
+			if(dto.getStatusAsEnum()!=null){
+				existingLecture.setStatus(dto.getStatusAsEnum());
+			}
+		} catch (Exception e) {
+//			throw new RuntimeException(e);
+		}
 		existingLecture.setType(type);  // Update the lecture type
 		existingLecture.setDuration(duration);  // Update the video duration if applicable
 		existingLecture.setUpdatedAt(Instant.now());
@@ -179,17 +202,9 @@ public class LectureService {
 		return lectureRepository.save(existingLecture);
 	}
 
-	public boolean delete(String courseId, int chapter) {
-		Lecture lecture = lectureRepository.findById(courseId, chapter);
-		if (lecture == null) {
-			throw new RuntimeException("Lecture not found for courseId: " + courseId + " and id: " + chapter);
-		}
 
-		lecture.setStatus(Lecture.Status.DELETED);
-		lecture.setUpdatedAt(Instant.now());
 
-		lectureRepository.save(lecture);
-		return true;
+	public Lecture getByCourseIdAndChapter(String courseId, Integer chapter) {
+		return lectureRepository.findByCourseIdAndChapter(courseId, chapter);
 	}
-
 }

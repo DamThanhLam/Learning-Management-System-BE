@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
@@ -22,6 +23,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -31,6 +34,16 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 @Configuration
 @EnableWebSecurity
@@ -43,6 +56,12 @@ public class SecurityConfig {
     private CookieBearerTokenResolver cookieBearerTokenResolver;
     @Value("${spring.web.allowed.origin}")
     private String allowedOrigins;
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
@@ -113,5 +132,47 @@ public class SecurityConfig {
         JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
         return new NimbusJwtEncoder(jwkSource);
     }
+
+    @Bean
+    public Cipher cipherDecrypt() throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+
+        // Đọc tệp từ classpath
+        ClassPathResource resource = new ClassPathResource("certs/private_key.pem");
+        InputStream inputStream = resource.getInputStream();
+        byte[] keyBytes = inputStream.readAllBytes();
+
+        // Chuyển đổi nội dung tệp thành chuỗi
+        String key = new String(keyBytes);
+        key = key.replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+        byte[] decodedKey = Base64.getDecoder().decode(key);
+
+        // Giải mã khóa private từ định dạng PKCS#8
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decodedKey);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        return cipher;
+    }
+
+    @Bean
+    public PublicKey publicKey() throws Exception {
+        ClassPathResource resource = new ClassPathResource("certs/public.pem"); // file public key của bạn
+        InputStream inputStream = resource.getInputStream();
+        byte[] keyBytes = inputStream.readAllBytes();
+        String key = new String(keyBytes);
+        key = key.replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s", "");
+        byte[] decodedKey = Base64.getDecoder().decode(key);
+
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decodedKey);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePublic(keySpec);
+    }
+
 }
 //how to login sso aws in the postman

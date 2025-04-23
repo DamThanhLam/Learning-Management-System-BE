@@ -7,12 +7,12 @@ import java.util.List;
 public class PaginatedLecturesDTO {
     private List<Lecture> lectures;
     private String lastEvaluatedId;
-    private String lastEvaluatedChapterOrderIndex;
+    private String lastEvaluatedChapter;
 
-    public PaginatedLecturesDTO(List<Lecture> lectures, String lastEvaluatedId, String lastEvaluatedChapterOrderIndex) {
+    public PaginatedLecturesDTO(List<Lecture> lectures, String lastEvaluatedId, String lastEvaluatedChapter) {
         this.lectures = lectures;
         this.lastEvaluatedId = lastEvaluatedId;
-        this.lastEvaluatedChapterOrderIndex = lastEvaluatedChapterOrderIndex;
+        this.lastEvaluatedChapter = lastEvaluatedChapter;
     }
 
     public List<Lecture> getLectures() {
@@ -32,10 +32,10 @@ public class PaginatedLecturesDTO {
     }
 
     public String getLastEvaluatedChapterOrderIndex() {
-        return lastEvaluatedChapterOrderIndex;
+        return lastEvaluatedChapter;
     }
 
     public void setLastEvaluatedChapterOrderIndex(String lastEvaluatedChapterOrderIndex) {
-        this.lastEvaluatedChapterOrderIndex = lastEvaluatedChapterOrderIndex;
+        this.lastEvaluatedChapter = lastEvaluatedChapterOrderIndex;
     }
 }

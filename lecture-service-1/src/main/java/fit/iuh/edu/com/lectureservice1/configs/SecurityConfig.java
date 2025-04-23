@@ -74,11 +74,7 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
         return converter;
     }
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring()
-                .requestMatchers(HttpMethod.OPTIONS);
-    }
+
     @Bean
     static RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_TEACHER > ROLE_STUDENT");
@@ -95,6 +91,12 @@ public class SecurityConfig {
                         .allowCredentials(true);
             }
         };
+    }
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers(HttpMethod.OPTIONS)
+                .requestMatchers("/api/v1/lectures");
     }
     @Bean
     JwtDecoder jwtDecoder() {

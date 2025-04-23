@@ -1,16 +1,14 @@
 package fit.iuh.edu.com.controller;
 
-import fit.iuh.edu.com.dtos.Login;
-import fit.iuh.edu.com.dtos.UserOwnResponse;
-import fit.iuh.edu.com.dtos.UserResponseNoAuth;
+import fit.iuh.edu.com.dtos.*;
 import fit.iuh.edu.com.enums.AccountStatus;
-import fit.iuh.edu.com.dtos.StudentRegister;
 import fit.iuh.edu.com.models.Account;
 import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.services.CognitoService;
 import fit.iuh.edu.com.services.bl.AccountServiceBL;
 import fit.iuh.edu.com.services.bl.UserServiceBL;
 import fit.iuh.edu.com.utils.JwtTokenUtil;
+import fit.iuh.edu.com.utils.MultipartFileValidator;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,16 +17,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -90,10 +94,53 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping()
+    public ResponseEntity<?> update(@Valid UserUpdate userUpdate, BindingResult bindingResult) throws IOException {
+        Map<String, Object> response = new HashMap<>();
+
+        if (bindingResult.hasErrors()) {
+            response.put("errors", bindingResult.getAllErrors());
+            response.put("status", "error");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(response);
+        }
+        if(userUpdate.getBirthday() != null){
+            if(!userUpdate.getBirthday().plusYears(18).isAfter(LocalDate.now())){
+                response.put("errors", "You must be over 18 years old");
+                response.put("status","error");
+                response.put("code",400);
+                return ResponseEntity.ok(response);
+            }
+        }
+        if(userUpdate.getCvFile() != null){
+            try{
+                MultipartFileValidator.validateCvFile(userUpdate.getCvFile());
+            }catch (Exception e){
+                response.put("error s", e.getMessage());
+                response.put("status","error");
+                response.put("code",400);
+                return ResponseEntity.ok(response);
+            }
+        }
+        if(userUpdate.getImageAvt() != null){
+            try{
+                MultipartFileValidator.validateImageAvatar(userUpdate.getImageAvt());
+            }catch (Exception e){
+                response.put("errors", e.getMessage());
+                response.put("status","error");
+                response.put("code",400);
+                return ResponseEntity.ok(response);
+            }
+        }
+        userServiceBL.update(userUpdate);
+        response.put("status","success");
+        response.put("code", 200);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/student/register")
     public ResponseEntity<?> studentRegister(@Valid @RequestBody StudentRegister studentRegister, BindingResult bindingResult) throws IllegalBlockSizeException, BadPaddingException {
-
-
         Map<String, Object> response = new HashMap<>();
         if (bindingResult.hasErrors()) {
             response.put("errors", bindingResult.getAllErrors());
@@ -116,6 +163,7 @@ public class UserController {
                 .id(key)
                 .userName(studentRegister.getUsername())
                 .accountStatus(AccountStatus.ACCEPT)
+                .email(studentRegister.getEmail())
                 .groups(groups)
                 .build();
         byte[] encryptedBytes = Base64.getDecoder().decode(studentRegister.getPassword());
@@ -144,7 +192,7 @@ public class UserController {
         }
         byte[] encryptedBytes = Base64.getDecoder().decode(login.getPassword());
         byte[] decryptedBytes = cipherDecrypt.doFinal(encryptedBytes);
-
+        System.out.println(Arrays.toString(decryptedBytes));
         String jwt = accountServiceBL.login(login.getEmail(), Arrays.toString(decryptedBytes));
         if(jwt == null){
             result.put("message", "Login fail");
@@ -160,7 +208,7 @@ public class UserController {
                 "; Path=/;" +
                 " HttpOnly;" +
                 " Max-Age=" + (15 * 60) + ";" +
-                " SameSite=None;";
+                " SameSite=Lax;";
         response.setHeader("Set-Cookie", cookie);
 
         Cookie refreshTokenCookie = new Cookie("refresh_token", refreshToken);

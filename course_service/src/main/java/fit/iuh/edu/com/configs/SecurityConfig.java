@@ -81,7 +81,7 @@ public class SecurityConfig {
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
                 .requestMatchers(HttpMethod.OPTIONS)
-                .requestMatchers("/api/v1/course/get-all-categories");
+                .requestMatchers("/api/v1/course/get-all-categories","/api/v1/course/search","api/v1/course");
     }
     @Bean
     static RoleHierarchy roleHierarchy() {

@@ -5,10 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbConvertedBy;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -29,14 +26,18 @@ public class Review {
     private int review;
     private Instant createdAt;
 
-
     @DynamoDbPartitionKey
-    public String getCourseId() {
+    public String getId() {
         return id;
     }
 
-    @DynamoDbSortKey
-    public Instant getCreateAt() {
+    @DynamoDbSecondaryPartitionKey(indexNames = "courseId-createdAt-index")
+    public String getCourseId() {
+        return courseId;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "courseId-createdAt-index")
+    public Instant getCreatedAt() {
         return createdAt;
     }
 }

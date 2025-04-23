@@ -56,7 +56,7 @@ public class CourseController {
         response.put("code",200);
         response.put("data",course);
         response.put("message", "success");
-        return ResponseEntity.ok(course);
+        return ResponseEntity.ok(response);
     }
     @PostMapping("/add-image")
     public ResponseEntity<?> addImage(@RequestParam("image") MultipartFile image) throws IOException {
@@ -122,14 +122,41 @@ public class CourseController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<?> listCourses(@RequestParam(required = false) String courseName, @RequestParam(required = false) String category ,@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
-        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
-            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
+    @GetMapping("/search-courses-common")
+    public ResponseEntity<?> searchCoursesCommon(){
+        Map<String, Object> response = new HashMap<>();
+        List<Course> courses = courseServiceImpl.getCoursesCommon();
+        if(courses.isEmpty()){
+            return  ResponseEntity.badRequest().build();
         }
-        List<Course> courses = courseServiceImpl.getCoursesByCourseNameOrCategory(courseName,category,pageSize,lastEvaluatedKey);
+        response.put("code",200);
+        response.put("message","success");
+        response.put("data",courses);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/search")
+    public ResponseEntity<?> listCourses(
+            @RequestParam(required = false) String courseName,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) Integer rating
+    ) {
+        int currentPage = (page != null && page >= 0) ? page : 0;
+
+        // Nếu bạn có phân trang theo offset
+        int offset = currentPage * size;
+
+        // Gọi service với các thông số mới
+        List<Course> courses = courseServiceImpl.searchCourses(
+                courseName,
+                category,
+                rating,
+                sort,
+                offset,
+                size
+        );
 
         List<CourseOfStudentResponse> coursesResponse = courses.stream()
                 .map(course -> CourseOfStudentResponse.builder()
@@ -140,15 +167,19 @@ public class CourseController {
                         .teacherName(course.getTeacherName())
                         .teacherId(course.getTeacherId())
                         .totalReview(course.getTotalReview())
+                        .urlAvt(course.getUrlAvt())
+                        .category(course.getCategory())
                         .build())
                 .toList();
 
         Map<String, Object> response = new HashMap<>();
-        response.put("code",200);
-        response.put("data",coursesResponse);
+        response.put("code", 200);
+        response.put("data", coursesResponse);
         response.put("message", "success");
+
         return ResponseEntity.ok(response);
     }
+
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/student")
     public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -157,7 +188,6 @@ public class CourseController {
         if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
             lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
         }
-        System.out.println("authentication.getName(): "+authentication.getName());
         List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName(),pageSize,lastEvaluatedKey);
 
         List<CourseOfStudentResponse> coursesResponse = courses.stream()
@@ -190,6 +220,7 @@ public class CourseController {
         List<CourseOfTeacherResponse> coursesResponse = new ArrayList<>();
 
         courses.forEach(course -> {
+
             CourseOfTeacherResponse courseOfStudentResponse = CourseOfTeacherResponse
                     .builder()
                     .id(course.getId())

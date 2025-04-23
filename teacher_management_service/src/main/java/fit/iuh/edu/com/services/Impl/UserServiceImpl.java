@@ -4,7 +4,12 @@ import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.repositories.UserRepository;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserServiceBL {
@@ -54,6 +59,12 @@ public class UserServiceImpl implements UserServiceBL {
     @Override
     public void update(User teacher) {
         userRepository.update(teacher);
+    }
+
+    @Override
+    public Page<User> getAllAccountByStatusAndRole(String status, String role, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return userRepository.findUsersByAccountStatusAndRole(status, role, pageable);
     }
 
 }

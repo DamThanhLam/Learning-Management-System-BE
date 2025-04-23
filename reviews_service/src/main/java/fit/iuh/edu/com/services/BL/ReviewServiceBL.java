@@ -16,4 +16,6 @@ public interface ReviewServiceBL {
     List<Review> getReviewsByTeacherId(User teacher);
     public boolean checkBeforeMapReview(String courseId,String reviewId);
     public void mapReviewToTeacher(String reviewId,String courseId);
+
+    List<Review> getReviewsBeforeNow(String courseId);
 }

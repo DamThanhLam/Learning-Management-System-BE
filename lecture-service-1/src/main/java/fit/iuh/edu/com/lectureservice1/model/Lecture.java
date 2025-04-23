@@ -14,7 +14,7 @@ import java.time.Instant;
 @Setter
 @DynamoDbBean
 public class Lecture {
-
+	private String id;
 	private String courseId; // Partition key
 	private int chapter; // Chapter the lecture belongs to
 	private String title; // Title of the lecture
@@ -29,11 +29,15 @@ public class Lecture {
 	private Status status; // Lecture status (OPENED, DELETED, DRAFT)
 
 	@DynamoDbPartitionKey
+	public String getId() {
+		return id;
+	}
+
+	@DynamoDbSecondaryPartitionKey(indexNames = "courseId-chapter-index")
 	public String getCourseId() {
 		return courseId;
 	}
-
-	@DynamoDbSortKey
+	@DynamoDbSecondarySortKey(indexNames = "courseId-chapter-index")
 	@DynamoDbAttribute("chapter")
 	public int getChapter() {
 		return chapter;

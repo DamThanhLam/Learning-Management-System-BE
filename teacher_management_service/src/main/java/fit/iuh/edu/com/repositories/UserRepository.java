@@ -1,20 +1,22 @@
 package fit.iuh.edu.com.repositories;
 
+import fit.iuh.edu.com.enums.AccountStatus;
 import fit.iuh.edu.com.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.*;
-import software.amazon.awssdk.enhanced.dynamodb.model.PageIterable;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
-import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.*;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Repository
 public class UserRepository {
@@ -78,4 +80,72 @@ public class UserRepository {
                 .build();
         return dynamoDbTable.scan(scanEnhancedRequest).items().stream().findFirst().orElse(null);
     }
+
+    public Page<User> findUsersByAccountStatusAndRole(String status, String role, Pageable pageable) {
+        List<User> allUsers;
+
+        if ("all".equalsIgnoreCase(status)) {
+            allUsers = StreamSupport
+                    .stream(dynamoDbTable.scan().items().spliterator(), false)
+                    .collect(Collectors.toList());
+        } else {
+            Map<String, AttributeValue> expressionValue = new HashMap<>();
+            expressionValue.put(":status", AttributeValue.builder().s(status.toUpperCase()).build());
+
+            Expression expression = Expression.builder()
+                    .expression("accountStatus = :status")
+                    .expressionValues(expressionValue)
+                    .build();
+
+            ScanEnhancedRequest scanEnhancedRequest = ScanEnhancedRequest.builder()
+                    .filterExpression(expression)
+                    .build();
+
+            allUsers = StreamSupport
+                    .stream(dynamoDbTable.scan(scanEnhancedRequest).items().spliterator(), false)
+                    .collect(Collectors.toList());
+        }
+
+        // Bổ sung: lọc theo role nếu có truyền vào
+        if (role != null && !role.isEmpty()) {
+            String roleUpperCase = role.toUpperCase();
+            allUsers = allUsers.stream()
+                    .filter(user -> user.getGroups() != null && user.getGroups().contains(roleUpperCase))
+                    .collect(Collectors.toList());
+        }
+
+        int pageSize = pageable.getPageSize();
+        int currentPage = pageable.getPageNumber();
+        int adjustedPage = Math.max(currentPage, 0);
+        int startItem = adjustedPage * pageSize;
+
+        List<User> pagedUsers;
+
+        if (startItem >= allUsers.size()) {
+            pagedUsers = Collections.emptyList();
+        } else {
+            int toIndex = Math.min(startItem + pageSize, allUsers.size());
+            pagedUsers = allUsers.subList(startItem, toIndex);
+        }
+
+        return new PageImpl<>(pagedUsers, pageable, allUsers.size());
+    }
+
+    public User find(String id) {
+        QueryConditional queryConditional = QueryConditional.keyEqualTo(
+                Key.builder().partitionValue(id).build()
+        );
+
+        QueryEnhancedRequest enhancedRequest = QueryEnhancedRequest.builder()
+                .queryConditional(queryConditional)
+                .build();
+
+        return dynamoDbTable.query(enhancedRequest)
+                .items()
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+
 }

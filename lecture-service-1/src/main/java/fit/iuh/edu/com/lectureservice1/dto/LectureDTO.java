@@ -16,6 +16,8 @@ public class LectureDTO {
     @NotBlank(message = "Title is required")
     private String title;
 
+    private String courseId;
+
     @NotBlank(message = "Chapter is required")
     private int chapter;
 
@@ -54,6 +56,14 @@ public class LectureDTO {
         dto.setChapter(lecture.getChapter());
         dto.setDescription(lecture.getDescription());
         dto.setStatusFromEnum(lecture.getStatus());
+        dto.setCourseId(lecture.getCourseId());
         return dto;
     }
+    public String getDescription() {
+        return description != null ? description : "";  // Trả về chuỗi rỗng nếu null
+    }
+    public String getTitle() {
+        return title != null ? title : "";  // Trả về chuỗi rỗng nếu null
+    }
+
 }

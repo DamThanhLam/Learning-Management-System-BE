@@ -21,6 +21,6 @@ public class UserServiceImpl implements UserServiceBL {
     @Override
     public User getUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return userRepository.getUserById(authentication.getName().toString());
+        return userRepository.getUserById(authentication.getName());
     }
 }

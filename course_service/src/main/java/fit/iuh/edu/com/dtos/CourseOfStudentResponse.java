@@ -13,4 +13,6 @@ public class CourseOfStudentResponse {
     private float totalReview;
     private int countReviews;
     private double price;
+    private String urlAvt;
+    private String category;
 }
