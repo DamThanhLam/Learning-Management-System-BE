@@ -3,6 +3,7 @@ package lms.payment_service_lms.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import lms.payment_service_lms.config.RabbitMQConfig;
 import lms.payment_service_lms.dto.OrderDetailDTO;
+import lms.payment_service_lms.dto.PaymentRequest;
 import lms.payment_service_lms.entity.Order;
 import lms.payment_service_lms.entity.OrderHistory;
 import lms.payment_service_lms.service.OrderHistoryService;
@@ -31,12 +32,10 @@ public class VNPayPaymentController {
     private final OrderHistoryService orderHistoryService;
     private final RabbitTemplate rabbitTemplate;
     @PostMapping("/submitOrder")
-    public String submidOrder(@RequestParam("userId") String userId,
-                              @RequestParam("courseIds") List<String> courseIds,
-                              @RequestParam(value = "orderInfo", defaultValue = "No") String orderInfo,
+    public String submidOrder(@RequestBody PaymentRequest paymentRequest,
                               HttpServletRequest request){
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-        return vnPayService.createOrder(userId, orderInfo, courseIds, baseUrl);
+        return vnPayService.createOrder(paymentRequest.getUserId(), paymentRequest.getOrderInfo(), paymentRequest.getCourseIds(), baseUrl);
     }
 
     @GetMapping("/vnpay-payment")

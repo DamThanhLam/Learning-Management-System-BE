@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaymentRequest {
-    String userId;  // Momo, VNPay, Bank, etc.
-    List<String> courseIds; // Số tiền thanh toán
-    String orderInfo;  // Đơn vị tiền tệ
+    String userId;
+    List<String> courseIds;
+    String orderInfo;
 }
