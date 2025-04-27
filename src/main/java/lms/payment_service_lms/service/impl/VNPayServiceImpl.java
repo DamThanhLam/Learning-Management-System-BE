@@ -1,116 +1,169 @@
 package lms.payment_service_lms.service.impl;
 
-import lms.payment_service_lms.service.VNPayService;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletRequest;
+import lms.payment_service_lms.config.VNPayConfig;
+import lms.payment_service_lms.entity.Course;
+import lms.payment_service_lms.entity.Order;
+import lms.payment_service_lms.entity.OrderHistory;
+import lms.payment_service_lms.entity.User;
+import lms.payment_service_lms.service.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import javax.lang.model.UnknownEntityException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class VNPayServiceImpl implements VNPayService {
-
-    @Value("${vnp.tmnCode}")
-    private String VNP_TMN_CODE;
-
-    @Value("${vnp.hashSecret}")
-    private String VNP_HASH_SECRET;
-
-    @Value("${vnp.url}")
-    private String VNP_URL;
+    private final OrderService orderService;
+    private final UserServices userServices;
+    private final CourseService courseService;
+    private final OrderHistoryService orderHistoryService;
 
     @Override
-    public String createPaymentUrlForVnPay(String orderId, double amount, String returnUrl) throws UnsupportedEncodingException {
-        // Sử dụng TreeMap để tự động sắp xếp tham số theo thứ tự từ điển
-        Map<String, String> vnpParams = new TreeMap<>();
+    public String createOrder(String userId, String orderInfo, List<String> courseIds, String urlReturn){
 
-        vnpParams.put("vnp_Version", "2.1.0");  // Phiên bản API
-        vnpParams.put("vnp_Command", "pay");  // Thêm tham số Command
-        vnpParams.put("vnp_TmnCode", VNP_TMN_CODE);
-        vnpParams.put("vnp_Amount", String.valueOf((int) (amount * 100)));  // Chuyển đổi sang đơn vị VND
-        vnpParams.put("vnp_CurrCode", "VND");
-        vnpParams.put("vnp_TxnRef", orderId);  // Mã đơn hàng
-        vnpParams.put("vnp_OrderInfo", URLEncoder.encode("thanh toan don hang " + orderId, "UTF-8"));
-        vnpParams.put("vnp_IpAddr", "127.0.0.1");
-        vnpParams.put("vnp_OrderType", "other");
-        vnpParams.put("vnp_Locale", "vn");  // Ngôn ngữ
-
-        // URL callback trả kết quả thanh toán
-        vnpParams.put("vnp_ReturnUrl", URLEncoder.encode(returnUrl, "UTF-8"));
-
-        vnpParams.put("vnp_CreateDate", getCurrentDateTime());  // Thời gian hiện tại
-        vnpParams.put("vnp_ExpireDate", getExpireDateTime());  // Thời gian hết hạn sau 15 phút
-
-        // Tạo checksum
-        String checkSum = createChecksum(vnpParams);
-
-        // Thêm tham số checksum vào URL
-        vnpParams.put("vnp_SecureHash", checkSum);
-
-        // Xây dựng URL thanh toán
-        StringBuilder paymentUrl = new StringBuilder(VNP_URL);
-        paymentUrl.append("?");
-        for (Map.Entry<String, String> entry : vnpParams.entrySet()) {
-            paymentUrl.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+        Optional<User> existingUser = userServices.findUserById(userId);
+        if (existingUser.isEmpty()){
+            throw new RuntimeException("User with ID " + userId + " not found");
         }
-        // Loại bỏ dấu "&" ở cuối chuỗi URL
-        paymentUrl.deleteCharAt(paymentUrl.length() - 1);
 
-        return paymentUrl.toString();
-    }
-
-    // Hàm tạo checksum
-    public String createChecksum(Map<String, String> vnpParams) {
-        StringBuilder signData = new StringBuilder();
-        for (Map.Entry<String, String> entry : vnpParams.entrySet()) {
-            signData.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+        List<Course> listCourse = courseService.findAll();
+        List<String> listCourseIds = new ArrayList<>();
+        double total = 0;
+        for (Course course : listCourse) {
+//            Order order = new Order(
+//                    vnp_TxnRef,
+//                    orderInfo,
+//                    course.getId(),
+//                    userId,
+//                    existingUser.get().getUserName(),
+//                    existingUser.get().getEmail(),
+//                    now,
+//                    "",
+//                    2,
+//                    course.getPrice()
+//            );
+            Order order = new Order(UUID.randomUUID().toString(), course.getId(), userId, LocalDateTime.now(), course.getPrice());
+            total += course.getPrice();
+            course.setCountOrders(course.getCountOrders()+1);
+            listCourseIds.add(course.getId());
+            orderService.addOrder(order);
         }
-        // Loại bỏ dấu "&" ở cuối chuỗi
-        signData.deleteCharAt(signData.length() - 1);
-        signData.append("&vnp_HashSecret=").append(VNP_HASH_SECRET);
 
-        return toHexString(hmacSHA512(signData.toString(), VNP_HASH_SECRET));  // Sử dụng HMACSHA512
-    }
+        String vnp_Version = "2.1.0";
+        String vnp_Command = "pay";
+        String vnp_TxnRef = VNPayConfig.getRandomTexRef();
+        String vnp_IpAddr = "127.0.0.1";
+        String vnp_TmnCode = VNPayConfig.vnp_TmnCode;
+        String orderType = "order-type";
 
-    // Hàm tính HMACSHA512
-    public byte[] hmacSHA512(String data, String key) {
-        try {
-            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA512");  // Sử dụng HMACSHA512
-            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes(), "HmacSHA512");
-            mac.init(secretKey);
-            return mac.doFinal(data.getBytes());  // Tính toán HMAC
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+        Map<String, String> vnp_Params = new HashMap<>();
+        vnp_Params.put("vnp_Version", vnp_Version);
+        vnp_Params.put("vnp_Command", vnp_Command);
+        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
+        vnp_Params.put("vnp_Amount", String.valueOf(total*100));
+        vnp_Params.put("vnp_CurrCode", "VND");
 
-    // Hàm chuyển đổi byte array thành chuỗi hexadecimal
-    public String toHexString(byte[] hash) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : hash) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
+        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
+        vnp_Params.put("vnp_OrderInfo", orderInfo);
+        vnp_Params.put("vnp_OrderType", orderType);
+
+        String locate = "vn";
+        vnp_Params.put("vnp_Locale", locate);
+
+        urlReturn += VNPayConfig.vnp_Returnurl;
+        vnp_Params.put("vnp_ReturnUrl", urlReturn);
+        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("GMT+7"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String vnp_CreateDate = now.format(formatter);
+        vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
+
+        LocalDateTime expireDateTime = now.plusMinutes(15);
+        String vnp_ExpireDate = expireDateTime.format(formatter);
+        vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
+
+        List fieldNames = new ArrayList(vnp_Params.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder hashData = new StringBuilder();
+        StringBuilder query = new StringBuilder();
+        Iterator itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = (String) itr.next();
+            String fieldValue = (String) vnp_Params.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                //Build hash data
+                hashData.append(fieldName);
+                hashData.append('=');
+                try {
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                    //Build query
+                    query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
+                    query.append('=');
+                    query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                if (itr.hasNext()) {
+                    query.append('&');
+                    hashData.append('&');
+                }
             }
-            hexString.append(hex);
         }
-        return hexString.toString().toUpperCase();
+        String queryUrl = query.toString();
+        String vnp_SecureHash = VNPayConfig.hmacSHA512(VNPayConfig.vnp_HashSecret, hashData.toString());
+        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
+        String paymentUrl = VNPayConfig.vnp_PayUrl + "?" + queryUrl;
+
+        OrderHistory orderHistory = new OrderHistory(vnp_TxnRef, listCourseIds, total, userId, existingUser.get().getUserName(), existingUser.get().getEmail(), orderInfo, "", LocalDateTime.now(), 2);
+        orderHistoryService.createOrderHistory(orderHistory);
+        return paymentUrl;
     }
 
-    private String getCurrentDateTime() {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        return formatter.format(calendar.getTime());
+    @Override
+    public int orderReturn(HttpServletRequest request){
+        Map fields = new HashMap();
+        for (Enumeration params = request.getParameterNames(); params.hasMoreElements();) {
+            String fieldName = null;
+            String fieldValue = null;
+            try {
+                fieldName = URLEncoder.encode((String) params.nextElement(), StandardCharsets.US_ASCII.toString());
+                fieldValue = URLEncoder.encode(request.getParameter(fieldName), StandardCharsets.US_ASCII.toString());
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                fields.put(fieldName, fieldValue);
+            }
+        }
+
+        String vnp_SecureHash = request.getParameter("vnp_SecureHash");
+        if (fields.containsKey("vnp_SecureHashType")) {
+            fields.remove("vnp_SecureHashType");
+        }
+        if (fields.containsKey("vnp_SecureHash")) {
+            fields.remove("vnp_SecureHash");
+        }
+        String signValue = VNPayConfig.hashAllFields(fields);
+        if (signValue.equals(vnp_SecureHash)) {
+            if ("00".equals(request.getParameter("vnp_TransactionStatus"))) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else {
+            return -1;
+        }
     }
 
-    // Hàm lấy thời gian hết hạn giao dịch (15 phút sau)
-    private String getExpireDateTime() {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+7"));
-        calendar.add(Calendar.MINUTE, 15);  // Thêm 15 phút cho thời gian hết hạn
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        return formatter.format(calendar.getTime());
-    }
 }

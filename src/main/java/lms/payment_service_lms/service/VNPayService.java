@@ -1,10 +1,12 @@
 package lms.payment_service_lms.service;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 
 public interface VNPayService {
-    String createPaymentUrlForVnPay(String orderId, double amount, String returnUrl) throws UnsupportedEncodingException;
-    String createChecksum(Map<String, String> vnpParams);
-    String toHexString(byte[] hash);
+    public String createOrder(String userId, String orderInfor, List<String> courseIds, String baseUrl);
+    int orderReturn(HttpServletRequest request);
 }

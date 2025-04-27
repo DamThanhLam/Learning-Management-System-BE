@@ -1,15 +1,26 @@
 package lms.payment_service_lms.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lms.payment_service_lms.config.RabbitMQConfig;
+import lms.payment_service_lms.dto.OrderDetailDTO;
+import lms.payment_service_lms.entity.Order;
+import lms.payment_service_lms.entity.OrderHistory;
+import lms.payment_service_lms.service.OrderHistoryService;
+import lms.payment_service_lms.service.OrderService;
 import lms.payment_service_lms.service.VNPayService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,72 +28,52 @@ import java.util.Map;
 public class VNPayPaymentController {
 
     private final VNPayService vnPayService;
+    private final OrderHistoryService orderHistoryService;
+    private final RabbitTemplate rabbitTemplate;
+    @PostMapping("/submitOrder")
+    public String submidOrder(@RequestParam("userId") String userId,
+                              @RequestParam("courseIds") List<String> courseIds,
+                              @RequestParam(value = "orderInfo", defaultValue = "No") String orderInfo,
+                              HttpServletRequest request){
+        String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        return vnPayService.createOrder(userId, orderInfo, courseIds, baseUrl);
+    }
 
-    // API để tạo URL thanh toán VNPAY
-    @GetMapping("/payment")
-    public String createPaymentUrl(@RequestParam("orderId") String orderId,
-                                   @RequestParam("amount") double amount,
-                                   @RequestParam("returnUrl") String returnUrl) {
+    @GetMapping("/vnpay-payment")
+    public ResponseEntity<Map<String, String>> handleVNPayReturn(HttpServletRequest request) {
+        Map<String, String> response = new HashMap<>();
+
         try {
-            // Kiểm tra URL trả về, nếu không hợp lệ thì gán giá trị mặc định
-            if (returnUrl == null || returnUrl.isEmpty()) {
-                returnUrl = "http://localhost:8080/api/v1/vnpay/return";  // Địa chỉ URL callback của bạn
+            // Lấy mã giao dịch từ VNPay
+            String txnRef = Optional.ofNullable(request.getParameter("vnp_TxnRef")).orElse("");
+            String transactionId = Optional.ofNullable(request.getParameter("vnp_TransactionNo")).orElse("");
+            String orderInfo = Optional.ofNullable(request.getParameter("vnp_OrderInfo")).orElse("");
+            String paymentTime = Optional.ofNullable(request.getParameter("vnp_PayDate")).orElse("");
+            String totalPrice = Optional.ofNullable(request.getParameter("vnp_Amount")).orElse("");
+
+            if (txnRef.isBlank()) {
+                response.put("error", "Thiếu mã giao dịch (TxnRef)");
+                return ResponseEntity.badRequest().body(response);
             }
 
-            // Gọi hàm tạo URL thanh toán VNPAY
-            String paymentUrl = vnPayService.createPaymentUrlForVnPay(orderId, amount, returnUrl);
+            int paymentStatus = vnPayService.orderReturn(request);
 
-            return "Chuyển hướng tới URL thanh toán VNPAY: <a href=\"" + paymentUrl + "\">" + paymentUrl + "</a>";
-        } catch (UnsupportedEncodingException e) {
-            return "Lỗi khi tạo URL thanh toán: " + e.getMessage();
+            // Cập nhật đơn hàng
+            orderHistoryService.updateOrderHistoryByTxnRef(txnRef, paymentStatus, transactionId);
+
+            // Trả thông tin phản hồi
+            response.put("paymentStatus", String.valueOf(paymentStatus));
+            response.put("orderInfo", orderInfo);
+            response.put("paymentTime", paymentTime);
+            response.put("transactionId", transactionId);
+            response.put("totalPrice", totalPrice);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("error", "Có lỗi xảy ra trong quá trình xử lý VNPay: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    // API để xử lý phản hồi từ VNPAY sau khi thanh toán
-//    @GetMapping("/return")
-//    public String handlePaymentResponse(HttpServletRequest request) {
-//        try {
-//            // Lấy tất cả các tham số từ phản hồi của VNPAY
-//            Map<String, String[]> parameterMap = request.getParameterMap();
-//
-//            // Tạo chuỗi tham số để kiểm tra checksum
-//            StringBuilder vnpResponse = new StringBuilder();
-//            for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
-//                String paramName = entry.getKey();
-//                String paramValue = entry.getValue()[0];
-//                if (paramValue != null && !paramValue.isEmpty() && !paramName.equals("vnp_SecureHash")) {
-//                    vnpResponse.append(paramName).append("=").append(paramValue).append("&");
-//                }
-//            }
-//
-//            // Loại bỏ dấu '&' cuối cùng nếu có
-//            if (vnpResponse.length() > 0) {
-//                vnpResponse.deleteCharAt(vnpResponse.length() - 1);
-//            }
-//
-//            // Tạo checksum từ tham số phản hồi và so sánh với giá trị checksum trong phản hồi
-//            String secureHash = request.getParameter("vnp_SecureHash");
-//            String checkSum = vnPayService.createChecksum(vnpResponse.toString());
-//
-//            if (secureHash != null && secureHash.equals(checkSum)) {
-//                // Kiểm tra trạng thái thanh toán
-//                String vnpTransactionStatus = request.getParameter("vnp_ResponseCode");
-//                String orderId = request.getParameter("vnp_TxnRef");
-//
-//                if ("00".equals(vnpTransactionStatus)) {
-//                    // Thanh toán thành công
-//                    return "Thanh toán thành công cho đơn hàng " + orderId;
-//                } else {
-//                    // Thanh toán thất bại
-//                    return "Thanh toán thất bại cho đơn hàng " + orderId;
-//                }
-//            } else {
-//                // Checksum không hợp lệ
-//                return "Lỗi bảo mật, dữ liệu bị thay đổi.";
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return "Lỗi xử lý phản hồi từ VNPAY: " + e.getMessage();
-//        }
-//    }
 }
