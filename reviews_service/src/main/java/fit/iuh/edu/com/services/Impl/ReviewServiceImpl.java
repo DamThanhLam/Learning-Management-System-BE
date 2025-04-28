@@ -88,4 +88,14 @@ public class ReviewServiceImpl implements ReviewServiceBL {
     public List<Review> getReviewsBeforeNow(String courseId) {
         return reviewRepository.getReviewsBeforeNow(courseId);
     }
+
+    @Override
+    public Review getReviewedByCourseId(String courseId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try{
+            return reviewRepository.getReviewedByCourseIdAndUserId(courseId, authentication.getName());
+        }catch (Exception e){
+            return null;
+        }
+    }
 }

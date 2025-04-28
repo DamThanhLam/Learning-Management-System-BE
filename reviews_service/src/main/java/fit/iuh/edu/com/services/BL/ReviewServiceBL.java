@@ -18,4 +18,6 @@ public interface ReviewServiceBL {
     public void mapReviewToTeacher(String reviewId,String courseId);
 
     List<Review> getReviewsBeforeNow(String courseId);
+
+    Review getReviewedByCourseId(String courseId);
 }

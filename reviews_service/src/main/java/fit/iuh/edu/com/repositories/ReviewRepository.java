@@ -1,6 +1,5 @@
 package fit.iuh.edu.com.repositories;
 
-import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.Review;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -12,7 +11,6 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Repository
 public class ReviewRepository{
@@ -103,4 +101,14 @@ public class ReviewRepository{
                 .orElse(null);
     }
 
+    public Review getReviewedByCourseIdAndUserId(String courseId, String userId) {
+        DynamoDbIndex<Review> index = dynamoDbTable.index("courseId-createdAt-index");
+        QueryConditional cond = QueryConditional.keyEqualTo(
+                Key.builder()
+                        .partitionValue(userId)
+                        .sortValue(courseId)
+                        .build()
+        );
+        return Objects.requireNonNull(index.query(cond).stream().findFirst().orElse(null)).items().stream().findFirst().orElse(null);
+    }
 }

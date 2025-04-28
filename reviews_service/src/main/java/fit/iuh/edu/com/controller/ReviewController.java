@@ -37,6 +37,14 @@ public class ReviewController {
         this.reviewServiceBL = reviewServiceBL;
         this.userServiceBL = userServiceBL;
     }
+    @GetMapping("/reviewed")
+    public ResponseEntity<?> reviewed(@RequestParam("courseId") String courseId) {
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("code",200);
+        response.put("message","success");
+        response.put("data",reviewServiceBL.getReviewedByCourseId(courseId));
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
     @PostMapping()
     public ResponseEntity<?> addReview(@Valid ReviewRequestAdd reviewRequestAdd, BindingResult bindingResult) throws IOException, ExecutionException, InterruptedException {
@@ -51,6 +59,10 @@ public class ReviewController {
 //        }
         if(!reviewServiceBL.checkDependency(reviewRequestAdd.getCourseId())){
             response.put("errors", "Review dependency class errors");
+            return ResponseEntity.badRequest().body(response);
+        }
+        if(reviewServiceBL.getReviewedByCourseId(reviewRequestAdd.getCourseId())!= null){
+            response.put("errors", "The course has been evaluated");
             return ResponseEntity.badRequest().body(response);
         }
         User user = userServiceBL.getUser(SecurityContextHolder.getContext().getAuthentication().getName());

@@ -31,13 +31,25 @@ public class Review {
         return id;
     }
 
+    // GSI 1: courseId-createdAt-index
     @DynamoDbSecondaryPartitionKey(indexNames = "courseId-createdAt-index")
-    public String getCourseId() {
+    public String getCourseIdForCourseIdCreatedAtIndex() {
         return courseId;
     }
 
     @DynamoDbSecondarySortKey(indexNames = "courseId-createdAt-index")
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    // GSI 2: userId-courseId-index
+    @DynamoDbSecondaryPartitionKey(indexNames = "userId-courseId-index")
+    public String getUserIdForUserIdCourseIdIndex() {
+        return userId;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "userId-courseId-index")
+    public String getCourseIdForUserIdCourseIdIndex() {
+        return courseId;
     }
 }

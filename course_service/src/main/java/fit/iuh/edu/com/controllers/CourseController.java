@@ -5,6 +5,7 @@ import fit.iuh.edu.com.models.Category;
 import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.services.BL.CategoryServiceBL;
+import fit.iuh.edu.com.services.BL.OrderDetailBL;
 import fit.iuh.edu.com.services.BL.ShoppingCartBL;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
@@ -53,6 +54,9 @@ public class CourseController {
 
     @Autowired
     private ShoppingCartBL shoppingCartBL;
+    @Autowired
+    private OrderDetailBL orderDetailBL;
+
     @PreAuthorize("hasRole('STUDENT')")
     @PostMapping(value="/shopping-cart", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> shoppingCartAdd(@Valid @RequestBody ShoppingCartRequest request, BindingResult bindingResult ){
@@ -64,10 +68,24 @@ public class CourseController {
             response.put("message",bindingResult.getAllErrors());
             return ResponseEntity.badRequest().body(response);
         }
+        if(orderDetailBL.checkCoursePurchased(request.getCourseId())){
+            response.put("code",400);
+            response.put("status","error");
+            response.put("message","Course have purchased");
+            return ResponseEntity.badRequest().body(response);
+        }
         shoppingCartBL.addCourse(request.getCourseId());
 
         response.put("code",200);
         response.put("status","success");
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/check-course-purchase")
+    public ResponseEntity<?> checkCoursePurchase(@RequestParam("courseId") String courseId){
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("status","success");
+        response.put("purchased", orderDetailBL.checkCoursePurchased(courseId));
         return ResponseEntity.ok(response);
     }
     @GetMapping("/shopping-cart")
