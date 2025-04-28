@@ -15,8 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class ReviewRequestAdd {
     @NotNull(message = "Course id must be not null")
     private String courseId;
-    @NotNull(message = "File image must be not null")
-    private MultipartFile fileImage;
+//    @NotNull(message = "File image must be not null")
+//    private MultipartFile fileImage;
     @NotNull(message = "Content must be no null")
     @Length(min = 10, max = 500, message = "Content must be length from 10 to 500")
     private String content;

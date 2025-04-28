@@ -95,8 +95,8 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers(HttpMethod.OPTIONS)
-                .requestMatchers("/api/v1/lectures");
+                .requestMatchers(HttpMethod.OPTIONS);
+//                .requestMatchers("/api/v1/lectures");
     }
     @Bean
     JwtDecoder jwtDecoder() {

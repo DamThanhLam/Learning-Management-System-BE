@@ -4,13 +4,17 @@ import fit.iuh.edu.com.controllers.CourseController;
 import fit.iuh.edu.com.enums.CourseLevel;
 import fit.iuh.edu.com.enums.CourseStatus;
 import fit.iuh.edu.com.models.Course;
+import fit.iuh.edu.com.models.Order;
 import fit.iuh.edu.com.repositories.CourseRepository;
+import fit.iuh.edu.com.repositories.OrderRepository;
 import fit.iuh.edu.com.services.BL.CourseServiceBL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
@@ -38,6 +42,8 @@ public class CourseServiceImpl implements CourseServiceBL {
 
     @Autowired
     private CourseRepository courseRepository;
+    @Autowired
+    private OrderRepository orderRepository;
 
     @Override
     public Course create(Course course) {
@@ -45,9 +51,21 @@ public class CourseServiceImpl implements CourseServiceBL {
     }
 
     @Override
-    public List<Course> getCoursesByStudentID(String studentID, int limit, Map<String, AttributeValue> lastEvaluatedKey) {
-        ScanResponse scanResponse = courseRepository.getCoursesByStudentID(studentID,limit,lastEvaluatedKey);
-        return mappingCoursesFromScanResponse(scanResponse);
+    public List<Course> getCoursesByStudentID(String studentID) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        List<Course> courses = new ArrayList<>();
+        List<Order> orders = orderRepository.getOrdersByUserId(authentication.getName());
+        orders.forEach(order -> {
+            if(order.getStatus() ==1){
+                order.getOrderIds().forEach(orderDetailId->{
+                    Course course = courseRepository.courseExist(orderDetailId);
+                    courses.add(course);
+                });
+            }
+
+        });
+
+        return courses;
     }
 
     @Override
@@ -150,9 +168,6 @@ public class CourseServiceImpl implements CourseServiceBL {
             }
             if(item.containsKey("teacherId")){
                 course.setTeacherId(item.get("teacherId").s());
-            }
-            if(item.containsKey("studentsId")){
-                course.setStudentsId(Arrays.asList(item.get("studentsId").s()));
             }
             if(item.containsKey("level")){
                 System.out.println(item.get("level").s());

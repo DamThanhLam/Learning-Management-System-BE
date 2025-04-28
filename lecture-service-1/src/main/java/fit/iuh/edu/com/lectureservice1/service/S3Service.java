@@ -44,7 +44,7 @@ public class S3Service {
 	
 	// Replace an existing file with a new one. Deletes the old file and uploads the new one.
 	public String replaceFile(String existingFileUrl, MultipartFile newFile, String folder) {
-		deleteFileFromUrl(existingFileUrl); // Delete the old file
+		if(existingFileUrl==null||!existingFileUrl.isEmpty())deleteFileFromUrl(existingFileUrl); // Delete the old file
 		return uploadFile(newFile, folder); // Upload the new file and return its URL
 	}
 

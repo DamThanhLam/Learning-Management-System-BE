@@ -45,22 +45,22 @@ public class ReviewController {
             response.put("errors", bindingResult.getAllErrors());
             return ResponseEntity.badRequest().body(response);
         }
-        ResponseEntity<?> resultCheckFileImage = checkFileImage(reviewRequestAdd.getFileImage());
-        if(resultCheckFileImage != null){
-            return resultCheckFileImage;
-        }
+//        ResponseEntity<?> resultCheckFileImage = checkFileImage(reviewRequestAdd.getFileImage());
+//        if(resultCheckFileImage != null){
+//            return resultCheckFileImage;
+//        }
         if(!reviewServiceBL.checkDependency(reviewRequestAdd.getCourseId())){
             response.put("errors", "Review dependency class errors");
             return ResponseEntity.badRequest().body(response);
         }
         User user = userServiceBL.getUser(SecurityContextHolder.getContext().getAuthentication().getName());
-        String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, reviewRequestAdd.getFileImage(),"images");
+//        String urlAvt = bucketServiceBL.putObjectToBucket(bucketName, reviewRequestAdd.getFileImage(),"images");
         Review review = Review
                 .builder()
                 .content(reviewRequestAdd.getContent())
                 .review(reviewRequestAdd.getReview())
                 .courseId(reviewRequestAdd.getCourseId())
-                .urlImage(urlAvt)
+//                .urlImage(urlAvt)
                 .userId(user.getId())
                 .urlAvt(user.getUrlImage())
                 .userName(user.getUserName())

@@ -162,21 +162,21 @@ public class LectureService {
 		if (documentFile != null && !documentFile.isEmpty()) {
 			// Validate document file
 			FileValidationUtil.validateFile(documentFile, MAX_DOCUMENT_SIZE, ALLOWED_DOCUMENT_TYPES, "Document");
-			s3Service.replaceFile(existingLecture.getDocumentUrl(), documentFile, folderFiles);
+			s3Service.replaceFile(existingLecture.getDocumentUrl()!= null?existingLecture.getDocumentUrl():"", documentFile, folderFiles);
 			existingLecture.setDocumentUrl(s3Service.uploadFile(documentFile,folderFiles));
 		}
 
 		if (videoFile != null && !videoFile.isEmpty()) {
 			// Validate video file
 			FileValidationUtil.validateFile(videoFile, MAX_VIDEO_SIZE, ALLOWED_VIDEO_TYPES, "Video");
-			s3Service.replaceFile(existingLecture.getVideoUrl(), videoFile, folderVideos);
+			s3Service.replaceFile(existingLecture.getVideoUrl()!= null?existingLecture.getVideoUrl():"", videoFile, folderVideos);
 			existingLecture.setVideoUrl(s3Service.uploadFile(videoFile,folderVideos));
 		}
 
 		if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
 			// Validate thumbnail file
 			FileValidationUtil.validateFile(thumbnailFile, MAX_THUMBNAIL_SIZE, ALLOWED_IMAGE_TYPES, "Thumbnail");
-			s3Service.replaceFile(existingLecture.getThumbnailUrl(), thumbnailFile, folderImages);
+			s3Service.replaceFile(existingLecture.getThumbnailUrl()!= null?existingLecture.getThumbnailUrl():"", thumbnailFile, folderImages);
 			existingLecture.setThumbnailUrl(s3Service.uploadFile(thumbnailFile,folderImages));
 		}
 

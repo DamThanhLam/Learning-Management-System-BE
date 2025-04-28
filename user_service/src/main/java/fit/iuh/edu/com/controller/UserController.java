@@ -32,6 +32,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -192,7 +193,8 @@ public class UserController {
         }
         byte[] encryptedBytes = Base64.getDecoder().decode(login.getPassword());
         byte[] decryptedBytes = cipherDecrypt.doFinal(encryptedBytes);
-        System.out.println(Arrays.toString(decryptedBytes));
+        String password = new String(decryptedBytes, StandardCharsets.UTF_8);
+        System.out.println(password);
         String jwt = accountServiceBL.login(login.getEmail(), Arrays.toString(decryptedBytes));
         if(jwt == null){
             result.put("message", "Login fail");
@@ -208,7 +210,7 @@ public class UserController {
                 "; Path=/;" +
                 " HttpOnly;" +
                 " Max-Age=" + (15 * 60) + ";" +
-                " SameSite=Lax;";
+                    " SameSite=Lax;";
         response.setHeader("Set-Cookie", cookie);
 
         Cookie refreshTokenCookie = new Cookie("refresh_token", refreshToken);

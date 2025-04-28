@@ -32,4 +32,8 @@ public class UserRepository {
         pageIterable.items().forEach(response::set);
         return response.get();
     }
+
+    public void update(User user) {
+        dynamoDbTable.putItem(user);
+    }
 }

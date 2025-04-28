@@ -20,13 +20,15 @@ public class CourseRepository {
         // get the DynamoDB table and map it to the Lecture model.
         this.courseTable = enhancedClient.table("Course", TableSchema.fromBean(Course.class));
     }
-    public Course getCourseCourseIdAndUserId(String userId, String courseId) {
-            Map<String, AttributeValue> expressionValue = new HashMap<String, AttributeValue>();
-            expressionValue.put(":userId",AttributeValue.builder().s(userId).build());
-            expressionValue.put(":courseId",AttributeValue.builder().s(courseId).build());
+    public Course getCourseCourseIdAndTeacherId(String userId, String courseId) {
+        System.out.println(userId);
+        System.out.println(courseId);
+        Map<String, AttributeValue> expressionValue = new HashMap<String, AttributeValue>();
+        expressionValue.put(":userId",AttributeValue.builder().s(userId).build());
+        expressionValue.put(":courseId",AttributeValue.builder().s(courseId).build());
 
         Expression expression = Expression.builder().expressionValues(expressionValue)
-                .expression("courseId = :courseId AND contains(studentsId,:userId) OR teacherId = :userId").build();
+                .expression("id = :courseId  AND teacherId = :userId").build();
         ScanEnhancedRequest request = ScanEnhancedRequest.builder()
                 .filterExpression(expression).build();
         System.out.println(this.courseTable.scan(request).items().stream().count());

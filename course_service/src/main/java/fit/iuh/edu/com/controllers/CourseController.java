@@ -5,6 +5,7 @@ import fit.iuh.edu.com.models.Category;
 import fit.iuh.edu.com.models.Course;
 import fit.iuh.edu.com.models.User;
 import fit.iuh.edu.com.services.BL.CategoryServiceBL;
+import fit.iuh.edu.com.services.BL.ShoppingCartBL;
 import fit.iuh.edu.com.services.BL.UserServiceBL;
 import fit.iuh.edu.com.services.Impl.BucketServiceImpl;
 import fit.iuh.edu.com.services.Impl.CourseServiceImpl;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -49,6 +51,48 @@ public class CourseController {
     @Autowired
     private CategoryServiceBL categoryServiceBL;
 
+    @Autowired
+    private ShoppingCartBL shoppingCartBL;
+    @PreAuthorize("hasRole('STUDENT')")
+    @PostMapping(value="/shopping-cart", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> shoppingCartAdd(@Valid @RequestBody ShoppingCartRequest request, BindingResult bindingResult ){
+        Map<String, Object> response = new HashMap<>();
+        System.out.println("Received courseId: " + request.getCourseId());
+        if(bindingResult.hasErrors()){
+            response.put("code",400);
+            response.put("status","error");
+            response.put("message",bindingResult.getAllErrors());
+            return ResponseEntity.badRequest().body(response);
+        }
+        shoppingCartBL.addCourse(request.getCourseId());
+
+        response.put("code",200);
+        response.put("status","success");
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/shopping-cart")
+    public ResponseEntity<?> shoppingList(){
+        Map<String, Object> response = new HashMap<>();
+        response.put("code",200);
+        response.put("status","success");
+        response.put("data", shoppingCartBL.getShoppingCart());
+        return ResponseEntity.ok(response);
+    }
+    @DeleteMapping("/shopping-cart")
+    public ResponseEntity<?> deleteItem(@Valid @RequestBody ShoppingCartRequest request, BindingResult bindingResult ){
+        Map<String, Object> response = new HashMap<>();
+        if(bindingResult.hasErrors()){
+            response.put("code",400);
+            response.put("status","error");
+            response.put("message",bindingResult.getAllErrors());
+            return ResponseEntity.badRequest().body(response);
+        }
+        shoppingCartBL.removeCourse(request.getCourseId());
+
+        response.put("code",200);
+        response.put("status","success");
+        return ResponseEntity.ok(response);
+    }
     @GetMapping
     public ResponseEntity<?> getCourseDetailById(@RequestParam("id") String courseId){
         Course course = courseServiceImpl.getCourseDetailById(courseId);
@@ -182,13 +226,9 @@ public class CourseController {
 
     @PreAuthorize("hasRole('STUDENT')")
     @GetMapping("/student")
-    public ResponseEntity<?> listCoursesByStudentId(@RequestParam(required = false) String lastEvaluatedId, @RequestParam(required = false, defaultValue = "10") int pageSize) {
+    public ResponseEntity<?> listCoursesByStudentId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Map<String, AttributeValue> lastEvaluatedKey = new HashMap<>();
-        if (lastEvaluatedId != null && !lastEvaluatedId.isEmpty()) {
-            lastEvaluatedKey.put("id", AttributeValue.builder().s(lastEvaluatedId).build());
-        }
-        List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName(),pageSize,lastEvaluatedKey);
+        List<Course> courses = courseServiceImpl.getCoursesByStudentID(authentication.getName());
 
         List<CourseOfStudentResponse> coursesResponse = courses.stream()
                 .map(course -> CourseOfStudentResponse.builder()
@@ -199,6 +239,8 @@ public class CourseController {
                         .teacherName(course.getTeacherName())
                         .teacherId(course.getTeacherId())
                         .totalReview(course.getTotalReview())
+                        .category(course.getCategory())
+                        .urlAvt(course.getUrlAvt())
                         .build())
                 .toList();
 
@@ -321,11 +363,11 @@ public class CourseController {
         return null;
     }
     public String getFileExtension(String filename) {
-            int dotIndex = filename.lastIndexOf(".");
-            if (dotIndex > 0 && dotIndex < filename.length() - 1) {
-                return filename.substring(dotIndex + 1).toLowerCase();
-            }
-            return ""; // Nếu không có đuôi mở rộng
+        int dotIndex = filename.lastIndexOf(".");
+        if (dotIndex > 0 && dotIndex < filename.length() - 1) {
+            return filename.substring(dotIndex + 1).toLowerCase();
         }
+        return ""; // Nếu không có đuôi mở rộng
+    }
 
 }

@@ -45,7 +45,7 @@ public class AccountServiceImpl implements AccountServiceBL {
     @Override
     public String login(String email, String password) {
         Account account = accountRepository.accountExists(email);
-        System.out.println("account"+account);
+        System.out.println("account"+password);
         System.out.println("email"+email);
         if (account == null) return null;
         if(passwordEncoder.matches(password,account.getPassword())){

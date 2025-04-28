@@ -98,28 +98,6 @@ public class CourseRepository {
         return dynamoDbTable.getItem(Key.builder().partitionValue(courseId).build());
     }
 
-    public ScanResponse getCoursesByStudentID(String studentID, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":studentID", AttributeValues.stringValue(studentID));
-        expressionAttributeValues.put(":s", AttributeValues.stringValue("OPEN"));
-        Map<String, String> expressionAttributeNames = new HashMap<>();
-        expressionAttributeNames.put("#s", "status");
-        ScanRequest.Builder requestBuilder  = ScanRequest
-                .builder()
-                .tableName("Course")
-                .filterExpression("contains(studentsId,:studentID) AND #s = :s")
-                .expressionAttributeValues(expressionAttributeValues)
-                .expressionAttributeNames(expressionAttributeNames)
-                .projectionExpression("id, courseName, price, urlAvt, teacherName, category, #s, teacherId")
-                .limit(pageSize != 0 ?pageSize:10);
-        if(lastEvaluatedKey!= null && !lastEvaluatedKey.isEmpty()){
-            System.out.println("lastEvaluatedKey:"+lastEvaluatedKey);
-            requestBuilder .exclusiveStartKey(lastEvaluatedKey);
-        }
-        ScanRequest request = requestBuilder.build();
-        return dynamoDBClient.scan(request);
-    }
-
     public ScanResponse getCoursesByTeacherID(String teacherId, int pageSize, Map<String, AttributeValue> lastEvaluatedKey) {
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":teacherId", AttributeValues.stringValue(teacherId));
